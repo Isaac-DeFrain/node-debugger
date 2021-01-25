@@ -8,18 +8,16 @@ open Basic
 module IdMap = Map.Make(Id)
 
 (* parameters: node, chain *)
-module NC = struct
+module NCMap = Map.Make(struct
   type t = Id.t * Chain.t
   let compare (n1, c1) (n2, c2) =
     let n_cmp = compare n1 n2 in
     if n_cmp < 0 || n_cmp > 0 then n_cmp
     else compare c1 c2
-end
-
-module NCMap = Map.Make(NC)
+end)
 
 (* parameters: node, chain, branch *)
-module NCB = struct
+module NCBMap = Map.Make(struct
   type t = Id.t * Chain.t * Branch.t
   let compare (n1, c1, b1) (n2, c2, b2) =
     let n_cmp = compare n1 n2 in
@@ -27,9 +25,7 @@ module NCB = struct
     if n_cmp < 0 || n_cmp > 0 then n_cmp
     else if c_cmp < 0 || c_cmp > 0 then c_cmp
     else compare b1 b2
-end
-
-module NCBMap = Map.Make(NCB)
+end)
 
 (* complete state of all nodes *)
 type t = {
@@ -56,51 +52,35 @@ let init num_nodes =
     messages = NCMap.empty;
 }
 
-let node = Id.id
-
-let chain = Chain.id
-
-let branch = Branch.id
-
-let ack info node chain (* msg *) = ()
-
-let advertise info node chain (* adv_type *) = ()
-
-let handle info node chain message = ()
-
-let request info node chain (* req_type *) = ()
-
-let err info node chain (* err_type *) = ()
-
+(* viewing functions *)
 let active info node =
   try IdMap.find node info.active
   with Not_found -> []
 
 let blocks info node chain branch =
-  try NCBMap.find (node, chain, branch) info.blocks
-  with Not_found -> Blocks.empty
+  try NCBMap.find (node, chain, branch) info.blocks |> Blocks.to_list
+  with Not_found -> []
 
 let branches info node chain =
   try NCMap.find (node, chain) info.branches
   with Not_found -> []
 
 let expect info node chain =
-  try NCMap.find (node, chain) info.expect
-  with Not_found -> Messages.empty
+  try NCMap.find (node, chain) info.expect |> Messages.to_list
+  with Not_found -> []
 
 let headers info node chain =
-  try NCMap.find (node, chain) info.headers
-  with Not_found -> Headers.empty
+  try NCMap.find (node, chain) info.headers |> Headers.to_list
+  with Not_found -> []
 
 let height info node chain branch =
   try NCBMap.find (node, chain, branch) info.height
   with Not_found -> -1
 
 let messages info node chain =
-  try NCMap.find (node, chain) info.messages
-  with Not_found -> Messages.empty
+  try NCMap.find (node, chain) info.messages |> Messages.to_list
+  with Not_found -> []
 
-(* viewing functions *)
 let view_nodes info =
   "[" ^ Array.fold_left (fun a b -> if a = "" then a ^ b else a ^ ", " ^ b) ""
     (Array.map Id.view info.nodes) ^ "]"
@@ -109,19 +89,18 @@ let view_active info node =
   "[" ^ String.concat ", " (List.map Chain.view (active info node)) ^ "]"
 
 let view_blocks info node chain branch =
-  "[" ^ String.concat ", "
-  (List.map Block.view (blocks info node chain branch |> Blocks.to_list)) ^ "]"
+  "[" ^ String.concat ", " (List.map Block.view (blocks info node chain branch)) ^ "]"
 
 let view_branches info node chain =
   "[" ^ String.concat ", " (List.map Branch.view (branches info node chain)) ^ "]"
 
 let view_expect info node chain =
   "[" ^ String.concat ", "
-  (List.map Message.view (expect info node chain |> Messages.to_list)) ^ "]"
+  (List.map Message.view (expect info node chain)) ^ "]"
 
 let view_headers info node chain =
   "[" ^ String.concat ", "
-  (List.map Header.view (headers info node chain |> Headers.to_list)) ^ "]"
+  (List.map Header.view (headers info node chain)) ^ "]"
 
 let view_heights info node chain =
   "(" ^ String.concat ", "
@@ -129,8 +108,7 @@ let view_heights info node chain =
     (branches info node chain)) ^ ")"
 
 let view_messages info node chain =
-  "[" ^ String.concat ", "
-  (List.map Message.view (messages info node chain |> Messages.to_list)) ^ "]"
+  "[" ^ String.concat ", " (List.map Message.view (messages info node chain)) ^ "]"
 
 (* view of [node]'s state *)
 let view_node info node =
@@ -205,17 +183,74 @@ let view info =
         info.nodes))
     ]
 
-(* [node] becomes active on [chain] *)
-let activate info node chain =
+(* Node actions *)
+let check_nodes info node exp =
   if not (Array.mem node info.nodes)
   then Printf.printf "%s\n"
     (Id.view node ^ " is not in the set of nodes " ^ view_nodes info)
-  else
-  match IdMap.find_opt node info.active with
-  | None -> info.active <- IdMap.add node [chain] info.active
-  | Some chains ->
-    if List.mem chain chains then Printf.printf "%s\n"
-      ("node " ^ Id.view node ^ " is already active on chain " ^ Chain.view chain)
+  else exp
+
+(* Activate/Deactivate *)
+(* [node] becomes active on [chain] *)
+let activate info node chain =
+  check_nodes info node (
+    match IdMap.find_opt node info.active with
+    | None -> info.active <- IdMap.add node [chain] info.active
+    | Some chains ->
+      if List.mem chain chains then Printf.printf "%s\n"
+        ("node " ^ Id.view node ^ " is already active on chain " ^ Chain.view chain)
+      else
+      let updated = List.sort_uniq compare (chain :: chains) in
+      info.active <- IdMap.add node updated info.active)
+
+(* [node] becomes inactive on [chain] *)
+let deactivate info node chain =
+  check_nodes info node (
+    match IdMap.find_opt node info.active with
+    | None ->
+      Printf.printf "%s\n"
+        ("node " ^ Id.view node ^ " is not not active on chain " ^ Chain.view chain)
+    | Some chains ->
+      if not (List.mem chain chains) then Printf.printf "%s\n"
+        ("node " ^ Id.view node ^ " is not not active on chain " ^ Chain.view chain)
+      else
+      let updated = List.remove chain chains in
+      info.active <- IdMap.add node updated info.active)
+
+(* sending messages *)
+let send_ack info node chain (* msg *) =
+  check_nodes info node ()
+
+let send_advertise info node chain (* adv_type *) =
+  check_nodes info node ()
+
+let send_request info node chain (* req_type *) =
+  check_nodes info node ()
+
+let send_err info node chain (* err_type *) =
+  check_nodes info node ()
+
+(* [node] updates branches on [chain] *)
+let update_branch info node chain branch =
+  check_nodes info node (
+    let bs = branches info node chain in
+    if List.mem branch bs
+    then Printf.printf "%s\n"
+      ("node " ^ Id.view node ^ " already knows about branch "
+      ^ Branch.view branch ^ " on chain " ^ Chain.view chain)
     else
-    let updated = List.sort_uniq compare (chain :: chains) in
-    info.active <- IdMap.add node updated info.active
+    let updated = List.sort_uniq Branch.compare (branch :: bs) in
+    info.branches <- NCMap.add (node, chain) updated info.branches)
+
+(* [node] updates height on [branch] of [chain] *)
+let update_height info node chain branch h =
+  check_nodes info node (
+    if h <= height info node chain branch
+    then Printf.printf "%s\n"
+      ("node " ^ Id.view node ^ " already knows about a block at height " ^ string_of_int h
+      ^ " on branch " ^ Branch.view branch ^ " of chain " ^ Chain.view chain)
+    else
+    info.height <- NCBMap.add (node, chain, branch) h info.height)
+
+let handle info node chain message =
+  check_nodes info node ()
