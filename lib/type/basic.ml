@@ -20,6 +20,7 @@ module type ViewableIdType = sig
   type t
   val compare : t -> t -> int
   val id : int -> t
+  val to_int : t -> int
   val view : t -> string
 end
 
@@ -27,6 +28,7 @@ module Id : ViewableIdType = struct
   type t = int
   let id n = n
   let compare = compare
+  let to_int n = n
   let view = string_of_int
 end
 
@@ -36,6 +38,7 @@ module Chain : ViewableIdType = struct
   type t = int
   let id c = c
   let compare = compare
+  let to_int c = c
   let view = string_of_int
 end
 
@@ -44,7 +47,8 @@ type chain = Chain.t
 module Branch : ViewableIdType = struct
   type t = int
   let id b = b
-  let compare = compare
+  let compare x y = compare y x
+  let to_int b = b
   let view = string_of_int
 end
 
@@ -240,3 +244,16 @@ module Messages : MESSAGES = struct
 end
 
 type messages = Messages.t
+
+let node = Id.id
+
+let chain = Chain.id
+
+let branch = Branch.id
+
+module List = struct
+  include List
+  let remove elem = function
+  | [] -> []
+  | l -> List.filter (fun x -> x <> elem) l
+end

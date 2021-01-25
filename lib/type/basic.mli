@@ -12,6 +12,7 @@ module type ViewableIdType = sig
   type t
   val compare : t -> t -> int
   val id : int -> t
+  val to_int : t -> int
   val view : t -> string
 end
 
@@ -85,3 +86,12 @@ type blocks = Blocks.t
 type ops = Ops.t
 type id = Id.t
 type node
+
+val node : int -> id
+val chain : int -> chain
+val branch : int -> branch
+
+module List : sig
+  include module type of List
+  val remove : 'a -> 'a t -> 'a t
+end
