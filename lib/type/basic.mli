@@ -60,12 +60,14 @@ module Message : ViewableType
 
 module type MESSAGES = sig
   type t
+  val empty : t
   val create : unit -> t
   val length : t -> int
   val clear : t -> unit
   val push : Message.t -> t -> unit
   val pop : t -> Message.t
   val peek : t -> Message.t option
+  val is_empty : t -> bool
   val to_list : t -> Message.t list
   val view : t -> string
 end

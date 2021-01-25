@@ -188,12 +188,14 @@ type message = Message.t
 
 module type MESSAGES = sig
   type t
+  val empty : t
   val create : unit -> t
   val length : t -> int
   val clear : t -> unit
   val push : Message.t -> t -> unit
   val pop : t -> Message.t
   val peek : t -> Message.t option
+  val is_empty : t -> bool
   val to_list : t -> Message.t list
   val view : t -> string
 end
@@ -204,6 +206,8 @@ module Messages : MESSAGES = struct
   open Queue
   let create = create
 
+  let empty = create ()
+
   let length = length
 
   let clear = clear
@@ -213,6 +217,8 @@ module Messages : MESSAGES = struct
   let pop = pop
 
   let peek = peek_opt
+
+  let is_empty = is_empty
 
   let to_list msgs =
     let cpy = copy msgs in
