@@ -1,0 +1,4 @@
+(executable
+ (public_name tla_debugger)
+ (name main)
+ (libraries tla_debugger))
