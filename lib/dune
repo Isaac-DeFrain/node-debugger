@@ -1,2 +1,3 @@
 (library
- (name tla_debugger))
+ (name tla_debugger)
+ (libraries core basic))
