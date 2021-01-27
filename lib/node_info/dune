@@ -1,0 +1,3 @@
+(library
+ (name node_info)
+ (libraries basic network_info))
