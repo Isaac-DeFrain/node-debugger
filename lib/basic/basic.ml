@@ -1,4 +1,5 @@
 module type ViewableType = Viewable.Type
+
 module type ViewableIdType = Viewable.IdType
 
 module Block = Block
@@ -12,6 +13,10 @@ module Message = Message
 module Messages = Messages
 module Msg = Msg
 module Ops = Ops
-
 module List = List
 module Queue = Queue
+module String = String
+
+let ( @@ ) = Stdlib.( @@ )
+
+let print viewer info = viewer info |> print_endline

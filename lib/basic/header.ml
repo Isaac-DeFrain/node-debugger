@@ -1,4 +1,4 @@
-type t = { chain : Chain.t; branch : Branch.t; height: int }
+type t = {chain : Chain.t; branch : Branch.t; height : int}
 
 let compare h1 h2 =
   let cmp_chain = Chain.compare h1.chain h2.chain in
@@ -9,9 +9,9 @@ let compare h1 h2 =
   else if cmp_branch < 0 || cmp_branch > 0 then cmp_branch
   else cmp_height
 
-let view h = "Header(" ^
-  String.concat ", "
-    [ "chain: " ^ Chain.view h.chain
-    ; "branch: " ^ Branch.view h.branch
-    ; "height: " ^ string_of_int h.height
-    ] ^ ")"
+let view h =
+  Printf.sprintf
+    "Header(chain %s, branch %s, height %d)"
+    Chain.(view h.chain)
+    Branch.(view h.branch)
+    h.height

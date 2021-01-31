@@ -1,5 +1,5 @@
 type t = int
-  
+
 let id c = c
 
 let compare = compare
