@@ -1,3 +1,4 @@
 (library
  (name network_info)
- (libraries basic))
+ (public_name tla_debugger.network_info)
+ (libraries basic execution))
