@@ -1,3 +1,5 @@
 (library
  (name tla_debugger)
- (libraries core basic))
+ (libraries core basic)
+ (lint
+  (pps ppx_js_style -annotated-ignores -styler -pretty -dated-deprecation)))
