@@ -2,6 +2,8 @@ open Basic
 open Type
 open Printf
 
+let sprintf_list l = sprintf "[%s]" @@ String.concat_comma l
+
 let view_nodes info =
   let open Array in
   let str =
@@ -13,95 +15,76 @@ let view_nodes info =
   sprintf "[%s]" str
 
 let view_active info node =
-  "[" ^ String.concat ", " (List.map Chain.view (active info node)) ^ "]"
+  sprintf_list @@ List.map Chain.view @@ active info node
 
-let view_actives info =
-  let open Array in
+(** all active chains for all nodes *)
+let view_all_active info =
   let node_id n = String.make 2 ' ' ^ Id.view n ^ " :> " in
-  to_list (map (fun n -> node_id n ^ view_active info n) info.nodes)
+  List.map (fun n -> node_id n ^ view_active info n) @@ nodes info
   |> String.concat_endline
 
 let view_blocks info node chain branch =
-  "["
-  ^ String.concat
-      ", "
-      (List.map Block.view (blocks_list info node chain branch))
-  ^ "]"
+  sprintf_list @@ List.map Block.view @@ blocks_list info node chain branch
 
 let view_branches info node chain =
-  "["
-  ^ String.concat ", " (List.map Branch.view (branches info node chain))
-  ^ "]"
+  sprintf_list @@ List.map Branch.view @@ branches info node chain
 
 let view_chains info = Network_info.view_chains info.network
 
 let view_expect info node chain =
-  let str =
-    String.concat ", " (List.map Message.view (expect_list info node chain))
-  in
-  sprintf "[%s]" str
+  sprintf_list @@ List.map Message.view @@ expect_list info node chain
 
 let view_headers info node chain =
-  let str =
-    String.concat ", " (List.map Header.view (headers info node chain))
-  in
-  sprintf "[%s]" str
+  sprintf_list @@ List.map Header.view @@ headers_list info node chain
 
 let view_heights info node chain =
   let view_heights_on_branch b =
-    sprintf "%s :> %d" Branch.(view b) (height info node chain b)
+    sprintf "%s :> %d" Branch.(view b) @@ height info node chain b
   in
-  let str =
-    String.concat
-      ", "
-      (List.map view_heights_on_branch (branches info node chain))
-  in
-  sprintf "(%s)" str
+  sprintf "(%s)" @@ String.concat_comma
+  @@ List.map view_heights_on_branch
+  @@ branches info node chain
 
 let view_messages info node chain =
-  "["
-  ^ String.concat ", " (List.map Message.view (messages_list info node chain))
-  ^ "]"
+  sprintf_list @@ List.map Message.view @@ messages_list info node chain
 
 (* node viewing *)
-let node_viewer ?(sp = 2) info node viewer =
-  let chain_id c = String.make sp ' ' ^ Chain.view c ^ " :> " in
-  String.concat_endline
+let node_viewer ?(sp = 2) info node viewer some_chains =
+  let open String in
+  let chain_id c = make sp ' ' ^ Chain.view c ^ " :> " in
+  concat_endline
     (List.map
        (fun c ->
          if branches info node c = [] then ""
          else chain_id c ^ viewer info node c)
-       (active info node))
+       some_chains)
 
 let view_node_blocks ?(sp = 2) info node =
-  let chain_id c = String.make sp ' ' ^ Chain.view c ^ " :> " in
-  let branch_id b = String.make (sp + 2) ' ' ^ Branch.view b ^ " :> " in
-  String.concat_endline
-    (List.map
-       (fun c ->
-         chain_id c
-         ^ String.concat_endline
-             (List.map
-                (fun b ->
-                  if blocks info node c b = Blocks.empty then ""
-                  else branch_id b ^ view_blocks info node c b)
-                (branches info node c)))
-       (active info node))
+  let open String in
+  let chain_id c = make sp ' ' ^ Chain.view c ^ " :> " in
+  let branch_id b = make (sp + 2) ' ' ^ Branch.view b ^ " :> " in
+  concat_endline
+    ( List.map (fun c ->
+          chain_id c
+          ^ concat_endline
+              ( List.map (fun b -> branch_id b ^ view_blocks info node c b)
+              @@ branches_with_blocks info node c ))
+    @@ chains_with_blocks info node )
 
 let view_node_branches ?(sp = 2) info node =
-  node_viewer ~sp info node view_branches
+  node_viewer ~sp info node view_branches @@ chains_with_branches info node
 
 let view_node_expect ?(sp = 2) info node =
-  node_viewer ~sp info node view_expect
+  node_viewer ~sp info node view_expect @@ chains_with_expect info node
 
 let view_node_headers ?(sp = 2) info node =
-  node_viewer ~sp info node view_headers
+  node_viewer ~sp info node view_headers @@ chains_with_headers info node
 
 let view_node_heights ?(sp = 2) info node =
-  node_viewer ~sp info node view_heights
+  node_viewer ~sp info node view_heights @@ chains_with_height info node
 
 let view_node_messages ?(sp = 2) info node =
-  node_viewer ~sp info node view_messages
+  node_viewer ~sp info node view_messages @@ chains_with_msgs info node
 
 (** view of [node]'s state *)
 let view_node info node =
@@ -115,29 +98,41 @@ let view_node info node =
       "height:\n" ^ view_node_heights info node;
       "messages:\n" ^ view_node_messages info node ]
 
-let state_viewer info viewer =
+let print_node info = print (view_node info)
+
+let view_node' info n = view_node info Id.(id n)
+
+let print_node' info n = print_node info Id.(id n)
+
+let state_viewer info viewer some_nodes =
   let node_id n = String.make 2 ' ' ^ Id.view n ^ " :> " in
   String.concat_endline
-    Array.(to_list (map (fun n -> node_id n ^ viewer info n) info.nodes))
+  @@ List.map (fun n -> node_id n ^ viewer info n) some_nodes
 
-let view_state_blocks info = state_viewer info (view_node_blocks ~sp:4)
+let view_state_blocks info =
+  state_viewer info (view_node_blocks ~sp:4) @@ nodes_with_blocks info
 
-let view_state_branches info = state_viewer info (view_node_branches ~sp:4)
+let view_state_branches info =
+  state_viewer info (view_node_branches ~sp:4) @@ nodes_with_branches info
 
-let view_state_expect info = state_viewer info (view_node_expect ~sp:4)
+let view_state_expect info =
+  state_viewer info (view_node_expect ~sp:4) @@ nodes_with_expect info
 
-let view_state_headers info = state_viewer info (view_node_headers ~sp:4)
+let view_state_headers info =
+  state_viewer info (view_node_headers ~sp:4) @@ nodes_with_headers info
 
-let view_state_heights info = state_viewer info (view_node_heights ~sp:4)
+let view_state_heights info =
+  state_viewer info (view_node_heights ~sp:4) @@ nodes_with_height info
 
-let view_state_messages info = state_viewer info (view_node_messages ~sp:4)
+let view_state_messages info =
+  state_viewer info (view_node_messages ~sp:4) @@ nodes_with_msgs info
 
 (** view of complete state of all nodes *)
 let view info =
   String.concat_endline
     [ "nodes:  " ^ view_nodes info;
       "chains: " ^ view_chains info;
-      "active:\n" ^ view_actives info;
+      "active:\n" ^ view_all_active info;
       "blocks:\n" ^ view_state_blocks info;
       "branches:\n" ^ view_state_branches info;
       "expect:\n" ^ view_state_expect info;

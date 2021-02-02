@@ -1,3 +1,4 @@
 (library
  (name node_info)
+ (public_name tla_debugger.node_info)
  (libraries basic network_info))
