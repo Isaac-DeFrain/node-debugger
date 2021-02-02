@@ -16,7 +16,7 @@ and ack_msg =
 and adv_msg =
   | Current_branch of Chain.t * Branch.t
   | Current_head of Chain.t * Branch.t * int
-  | Block_header of Header.t
+  | Block_header of Chain.t * Branch.t * int * Header.t
   | Operations of Chain.t * Branch.t * int * Ops.t
 
 and err_msg =
@@ -89,7 +89,7 @@ and view_adv = function
         Chain.(view c)
         Branch.(view b)
         h
-  | Block_header hdr ->
+  | Block_header (_, _, _, hdr) ->
       sprintf "Block_header( %s )" Header.(view hdr)
   | Operations (c, b, h, ops) ->
       sprintf
@@ -215,8 +215,8 @@ and exp_of_adv node = function
       Exp_ack_current_branch (node, c)
   | Current_head (c, b, _) ->
       Exp_ack_current_head (node, c, b)
-  | Block_header hdr ->
-      Exp_ack_block_header (node, hdr.chain, hdr.branch, hdr.height)
+  | Block_header (c, b, h, _) ->
+      Exp_ack_block_header (node, c, b, h)
   | Operations (c, b, h, _) ->
       Exp_ack_operations (node, c, b, h)
 

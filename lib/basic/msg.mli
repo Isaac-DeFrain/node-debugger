@@ -14,7 +14,7 @@ and ack_msg =
 and adv_msg =
   | Current_branch of Chain.t * Branch.t
   | Current_head of Chain.t * Branch.t * int
-  | Block_header of Header.t
+  | Block_header of Chain.t * Branch.t * int * Header.t
   | Operations of Chain.t * Branch.t * int * Ops.t
 
 and err_msg =
