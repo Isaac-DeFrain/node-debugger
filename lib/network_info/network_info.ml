@@ -99,8 +99,8 @@ let receive_sys info chain msg =
 
 (** {2 New_block} *)
 
-(* verify that it is appropriatethe to [block] in the current context *)
-let new_block info (block : Block.t) =
+(* verify that it is appropriate to add [block] to the current context *)
+let new_block ?(trace = true) info (block : Block.t) =
   let chain = block.header.chain in
   let branch = block.header.branch in
   let height = block.header.height in
@@ -115,60 +115,70 @@ let new_block info (block : Block.t) =
       else
         let blocks = Blocks.insert block (blocks info chain branch) in
         (* add action to execution trace *)
-        Execution.sys_new_block chain block info.trace ;
+        if trace then Execution.sys_new_block chain block info.trace ;
         (* add [block] to collection on [branch] of [chain] *)
         info.blocks <- CBMap.add (chain, branch) blocks info.blocks)
 
-let new_block' info c b height n =
+let new_block' ?(trace = true) info c b height n =
   let block : Block.t =
     {
       header = {chain = Chain.id c; branch = Branch.id b; height};
       ops = (height, n);
     }
   in
-  new_block info block
+  new_block ~trace info block
 
 (** randomize over chains, branches, num_ops, (height is determined) *)
-let new_block_random info =
+let new_block_random ?(trace = true) info =
   let c = Random.int Chain.(to_int info.chain) + 1 in
   let chain = Chain.id c in
   let b = Random.int Branch.(to_int (current_branch info chain) + 1) in
   let h = current_height info chain (Branch.id b) + 1 in
   let n = Random.int 10 in
-  new_block' info c b h n
+  new_block' ~trace info c b h n
+
+let new_block_rand_ops ?(trace = true) info c b h =
+  let num_ops = Random.int 10 in
+  new_block' ~trace info c b h num_ops
 
 (** {2 New_chain} *)
-let new_chain info =
-  let chain = Chain.(id @@ (to_int info.chain + 1)) in
+let new_chain ?(trace = true) info =
+  let c = Chain.to_int info.chain + 1 in
+  let chain = Chain.(id c) in
   (* add action to execution trace *)
-  Execution.sys_new_chain chain info.trace ;
+  if trace then Execution.sys_new_chain chain info.trace ;
   (* update chain *)
   info.chain <- chain ;
   (* new chain gets branch 0 *)
-  info.branch <- CMap.add chain Branch.(id 0) info.branch
+  info.branch <- CMap.add chain Branch.(id 0) info.branch ;
+  (* and block 0 *)
+  new_block_rand_ops ~trace info c 0 0
 
 (** {2 New_branch} *)
 
 (* Add new branch on existing [chain] *)
-let new_branch info chain =
+let new_branch ?(trace = true) info chain =
   check_chains info chain (fun () ->
-      let branch = Branch.(id @@ (to_int (current_branch info chain) + 1)) in
+      let b = (Branch.to_int @@ current_branch info chain) + 1 in
+      let branch = Branch.id b in
       (* add action to execution trace *)
       Execution.sys_new_branch chain branch info.trace ;
       (* update branch *)
-      info.branch <- CMap.add chain branch info.branch)
+      info.branch <- CMap.add chain branch info.branch ;
+      (* add block 0 *)
+      new_block_rand_ops ~trace info Chain.(to_int chain) b 0)
 
 (** {2 Receive} *)
 
 (* [sys] rececieves the "first" message from their mailbox *)
-let receive_first info chain =
+let receive_first ?(trace = true) info chain =
   check_sent info chain (fun () ->
       match Messages.to_list @@ sent_sys info chain with
       | [] ->
           assert false
       | msg :: _ ->
           (* add action to execution trace *)
-          Execution.sys_recv chain msg info.trace ;
+          if trace then Execution.sys_recv chain msg info.trace ;
           (* [sys] receives [msg] *)
           receive_sys info chain msg)
 
@@ -185,29 +195,29 @@ let broadcast info chain gen_msg =
 
 (** {3 Current_branch} *)
 
-let advertise_branch_one info chain node =
+let advertise_branch_one ?(trace = true) info chain node =
   check_active info chain node (fun () ->
       let branch = current_branch info chain in
       let msg =
         Message.Msg (Id.id 0, node, Msg.(Adv (Current_branch (chain, branch))))
       in
       (* add action to execution trace *)
-      Execution.sys_adv_one node chain msg info.trace ;
+      if trace then Execution.sys_adv_one node chain msg info.trace ;
       (* [sys] sends [msg] to [node] *)
       send_msg info chain node msg)
 
-let advertise_branch_all info chain =
+let advertise_branch_all ?(trace = true) info chain =
   check_any_active info chain (fun () ->
       let branch = current_branch info chain in
       let msg = Msg.(Adv (Current_branch (chain, branch))) in
       let gen_msg n = Message.Msg (Id.id 0, n, msg) in
       (* add action to execution trace *)
-      Execution.sys_adv_all chain msg info.trace ;
+      if trace then Execution.sys_adv_all chain msg info.trace ;
       (* [sys] sends [msg] to [node] *)
       broadcast info chain gen_msg)
 
 (** {3 Current_head} *)
-let advertise_head_one info chain node branch =
+let advertise_head_one ?(trace = true) info chain node branch =
   check_active info chain node (fun () ->
       let height = current_height info chain branch in
       let msg =
@@ -215,17 +225,17 @@ let advertise_head_one info chain node branch =
           (Id.id 0, node, Msg.(Adv (Current_head (chain, branch, height))))
       in
       (* add action to execution trace *)
-      Execution.sys_adv_one node chain msg info.trace ;
+      if trace then Execution.sys_adv_one node chain msg info.trace ;
       (* [sys] sends [msg] to [node] *)
       send_msg info chain node msg)
 
-let advertise_head_all info chain branch =
+let advertise_head_all ?(trace = true) info chain branch =
   check_any_active info chain (fun () ->
       let height = current_height info chain branch in
       let msg = Msg.(Adv (Current_head (chain, branch, height))) in
       let gen_msg n = Message.Msg (Id.id 0, n, msg) in
       (* add action to execution trace *)
-      Execution.sys_adv_all chain msg info.trace ;
+      if trace then Execution.sys_adv_all chain msg info.trace ;
       (* [sys] sends [msg] to [node] *)
       broadcast info chain gen_msg)
 

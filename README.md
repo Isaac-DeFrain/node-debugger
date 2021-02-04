@@ -1,6 +1,6 @@
 # node-debugger
 
-This is an implementation of a state machine for troubleshooting the TLA+ modeling work that is happening [here][https://github.com/simplestaking/model-p2p].
+This is an implementation of a state machine for troubleshooting the TLA+ modeling work that is happening [here](https://github.com/simplestaking/model-p2p).
 
 ## Initial states
 
