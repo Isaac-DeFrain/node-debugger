@@ -140,6 +140,10 @@ let view info =
       "height:\n" ^ view_state_heights info;
       "messages:\n" ^ view_state_messages info ]
 
+let view_chain info = Network_info.view_chain info.network
+
+let view_chain' info c = Network_info.view_chain info.network Chain.(id c)
+
 let view_network info = Network_info.view info.network
 
 let view_trace info = Network_info.view_trace info.network
