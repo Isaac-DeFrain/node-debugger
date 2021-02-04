@@ -37,7 +37,7 @@ let view_chain_blocks ?(sp = 2) info chain =
   let branch_id b = String.make sp ' ' ^ Branch.view b ^ " :> " in
   String.concat_endline
   @@ List.map (fun b -> branch_id b ^ view_blocks info chain b)
-  @@ branches info chain
+  @@ branches_with_blocks info chain
 
 let view_chain_branches info chain =
   if branches info chain = [] then "" else view_branches info chain
@@ -70,23 +70,28 @@ let view_chain info chain =
       "sent:\n" ^ view_chain_sent info chain;
       "sysmsgs: " ^ view_chain_sysmsgs info chain ]
 
-let state_viewer info viewer =
+let state_viewer info viewer some_chains =
   let chain_id c = String.make 2 ' ' ^ Chain.view c ^ " :> " in
   String.concat_endline
-  @@ List.map (fun c -> chain_id c ^ viewer info c)
-  @@ chains info
+  @@ List.map (fun c -> chain_id c ^ viewer info c) some_chains
 
-let view_state_active info = state_viewer info view_active
+let view_state_active info =
+  state_viewer info view_active @@ chains_with_active info
 
-let view_state_blocks info = state_viewer info @@ view_chain_blocks ~sp:4
+let view_state_blocks info =
+  state_viewer info (view_chain_blocks ~sp:4) @@ chains_with_blocks info
 
-let view_state_branch info = state_viewer info view_chain_branches
+let view_state_branch info =
+  state_viewer info view_chain_branches @@ chains_with_branches info
 
-let view_state_heights info = state_viewer info @@ view_chain_heights ~sp:4
+let view_state_heights info =
+  state_viewer info (view_chain_heights ~sp:4) @@ chains_with_height info
 
-let view_state_sent info = state_viewer info @@ view_chain_sent ~sp:4
+let view_state_sent info =
+  state_viewer info (view_chain_sent ~sp:4) @@ chains_with_sent info
 
-let view_state_sysmsgs info = state_viewer info view_chain_sysmsgs
+let view_state_sysmsgs info =
+  state_viewer info view_chain_sysmsgs @@ chains_with_sysmsgs info
 
 (* view of complete state of the network *)
 let view info =

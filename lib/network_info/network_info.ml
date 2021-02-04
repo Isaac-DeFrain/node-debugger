@@ -1,265 +1,244 @@
 (** State of the network *)
 
 open Basic
+include Type
+include View
+open Printf
 
-(** parameters: chain *)
-module CMap = Map.Make(Chain)
+(** {1 Enabling condition checks} *)
 
-(** parameters: chain, branch *)
-module CBMap = Map.Make(struct
-  type t = Chain.t * Branch.t
-  let compare (c1, b1) (c2, b2) =
-    let c_cmp = compare c1 c2 in
-    if c_cmp < 0 || c_cmp > 0 then c_cmp
-    else compare b1 b2
-end)
-
-(** parameters: chain, node *)
-module CNMap = Map.Make(struct
-  type t = Chain.t * Id.t
-  let compare (c1, n1) (c2, n2) =
-    let c_cmp = compare c1 c2 in
-    if c_cmp < 0 || c_cmp > 0 then c_cmp
-    else compare n1 n2
-end)
-
-type t = {
-  mutable active  : Id.t list CMap.t;
-  mutable blocks  : Blocks.t CBMap.t;
-  mutable branch  : Branch.t CMap.t; (** highest branch on chain *)
-  mutable chain   : Chain.t;         (** hightest chain *)
-  mutable height  : int CBMap.t;
-  mutable sent    : Messages.t CNMap.t;
-  mutable sysmsgs : Message.t Queue.t CMap.t;
-}
-
-let init () =
-  let branch = Branch.id in
-  let chain = Chain.id in
-  { active  = CMap.(add (chain 1) [] empty)
-  ; blocks  = CBMap.(add (chain 1, branch 0) Blocks.empty empty)
-  ; branch  = CMap.(add (chain 1) (branch 0) empty)
-  ; chain   = chain 1
-  ; height  = CBMap.(add (chain 1, branch 0) (-1) empty)
-  ; sent    = CNMap.empty
-  ; sysmsgs = CMap.(add (chain 1) (Queue.create ()) empty)
-  }
-
-(** active nodes on [chain] *)
-let active info chain =
-  try CMap.find chain info.active
-  with Not_found -> []
-
-(** list of all blocks on [branch] of [chain] *)
-let blocks info chain branch =
-  try CBMap.find (chain, branch) info.blocks
-  with Not_found -> Blocks.empty
-
-let blocks_list info chain branch = blocks info chain branch |> Blocks.to_list
-
-(** current branch on [chain] *)
-let current_branch info chain =
-  try CMap.find chain info.branch
-  with Not_found -> Branch.id (-1)
-
-(** list of all branches on [chain] *)
-let branches info chain =
-  let b = Branch.to_int (current_branch info chain) in
-  let rec range a b =
-    if a = b then [b] else a :: range (a + 1) b
-  in
-  if b < 0 then [] else List.map Branch.id (range 0 b)
-
-(** height on [branch] of [chain] *)
-let current_height info chain branch =
-  try CBMap.find (chain, branch) info.height
-  with Not_found -> -1
-
-(** list of all heights on [branch] of [chain] *)
-let heights info chain branch =
-  let h = current_height info chain branch in
-  let rec range a b =
-    if a = b then [b] else a :: range (a + 1) b
-  in
-  if h < 0 then [] else range 0 h
-
-(** list of messages sent to [node] on [chain], order is not important *)
-let sent info chain node =
-  try CNMap.find (chain, node) info.sent
-  with Not_found -> Messages.empty
-
-let sent_list info chain node = sent info chain node |> Messages.to_list
-
-(** list of system messages on [chain], order is not important *)
-let sysmsgs info chain =
-  try CMap.find chain info.sysmsgs |> Queue.to_list
-  with Not_found -> []
-
-(** list of all chains *)
-let chains info =
-  let open Basic in
-  let open Chain in
-  let c = to_int info.chain in
-  if c = 1 then [id c]
-  else
-  let rec range a b = if a = b then [b] else a :: range (a + 1) b in
-  List.map id (range 1 c)
-
-(* viewing functions *)
-let view_active info chain =
-  "[" ^ String.concat ", " (List.map Id.view (active info chain)) ^ "]"
-
-let view_blocks info chain branch =
-  "[" ^ String.concat ", " (List.map Block.view (blocks_list info chain branch)) ^ "]"
-
-let view_branch info chain = Branch.to_int (current_branch info chain) |> string_of_int
-
-let view_branches info chain =
-  "[" ^ String.concat ", " (List.map Branch.view (branches info chain)) ^ "]"
-
-let view_chains info =
-  "[" ^ String.concat ", " (List.map Chain.view (chains info)) ^ "]"
-
-let view_height info chain branch = current_height info chain branch |> string_of_int
-
-let view_heights info chain branch =
-  "[" ^ String.concat ", " (List.map string_of_int (heights info chain branch)) ^ "]"
-
-let view_sent info chain node =
-  "[" ^ String.concat ", " (List.map Message.view (sent_list info chain node)) ^ "]"
-
-let view_sysmsgs info chain =
-  "[" ^ String.concat ", " (List.map Message.view (sysmsgs info chain)) ^ "]"
-
-(* view of a single [chain] *)
-let view_chain info chain =
-  let branch_id b = String.make 2 ' ' ^ Branch.view b ^ " :> " in
-  let node_id n = String.make 2 ' ' ^ Id.view n ^ " :> " in
-  String.concat "\n"
-    [ "chain: " ^ Chain.view chain
-    ; "active: " ^ view_active info chain
-    ; "blocks:" ^ String.concat "\n"
-      (let l = List.map (fun b -> branch_id b ^ view_blocks info chain b) (branches info chain) in
-      if l = [] then l else "" :: l)
-    ; "branch: " ^ view_branches info chain
-    ; "height:" ^ String.concat "\n"
-      (let l = List.map (fun b -> branch_id b ^ view_heights info chain b) (branches info chain) in
-      if l = [] then l else "" :: l)
-    ; "sent:" ^ String.concat "\n"
-      (let l = List.map (fun n -> node_id n ^ view_sent info chain n) (active info chain) in
-      if l = [] then l else "" :: l)
-    ; "sysmsgs: " ^ view_sysmsgs info chain
-    ]
-
-(* view of complete state of the network *)
-let view info =
-  let chain_list = chains info in
-  let chain_id c = String.make 2 ' ' ^ Chain.view c ^ " :> " in
-  let branch_id b = String.make 4 ' ' ^ Branch.view b ^ " :> " in
-  let node_id n = String.make 4 ' ' ^ Id.view n ^ " :> " in
-  String.concat "\n"
-    [ "chains: [" ^ String.concat ", " (List.map Chain.view chain_list) ^ "]"
-    ; "active:\n" ^ String.concat "\n"
-      (List.map (fun c -> chain_id c ^ view_active info c) chain_list)
-    ; "blocks:\n" ^ String.concat "\n"
-      (List.map (fun c ->
-        chain_id c ^ String.concat "\n"
-          (let l = List.map (fun b -> branch_id b ^ view_blocks info c b) (branches info c) in
-          if l = [] then l else "" :: l))
-      chain_list)
-    ; "branch:\n" ^ String.concat "\n"
-      (List.map (fun c -> chain_id c ^ view_branches info c) chain_list)
-    ; "height:\n" ^ String.concat "\n"
-      (List.map (fun c ->
-        chain_id c ^ String.concat "\n"
-          (let l = List.map (fun b -> branch_id b ^ view_heights info c b) (branches info c) in
-          if l = [] then l else "" :: l))
-      chain_list)
-    ; "sent:\n" ^ String.concat "\n"
-      (List.map (fun c ->
-        chain_id c ^ String.concat "\n"
-          (let l = List.map (fun n -> node_id n ^ view_sent info c n) (active info c) in
-          if l = [] then l else "" :: l))
-      chain_list)
-    ; "sysmsgs:\n"^ String.concat "\n"
-      (List.map (fun c -> chain_id c ^ view_sysmsgs info c) chain_list)
-    ]
-
+(** verifies that [chain] is valid in the current context *)
 let check_chains info chain exp =
-  if not (chain <= info.chain)
-  then Printf.printf "%s\n"
-    (Chain.view chain ^ " is not in the set of chains " ^ view_chains info)
-  else exp
+  if chain <= Chain.id 0 || chain > info.chain then
+    printf
+      "chain %s is not in the set of chains on this network: %s\n"
+      Chain.(view chain)
+    @@ view_chains info
+  else exp ()
 
+(** verifies that [node] is active on [chain] in the current context *)
 let check_active info chain node exp =
-  check_chains info chain (
-    if not (List.mem node (active info chain))
-    then Printf.printf "node %s is not active on chain %s\n" Id.(view node) Chain.(view chain)
-    else exp
-  )
+  check_chains info chain (fun () ->
+      if not (List.mem node @@ active info chain) then
+        printf
+          "node %s is not active on chain %s\n"
+          Id.(view node)
+          Chain.(view chain)
+      else exp ())
 
+(** verifies that there is an active node on [chain] *)
+let check_any_active info chain exp =
+  check_chains info chain (fun () ->
+      if active info chain = [] then
+        printf "There are no active nodes on chain %s\n" Chain.(view chain)
+      else exp ())
+
+(** verifies that [branch] is valid and can be added to [chain] *)
 let check_branch_add info chain branch exp =
-  check_chains info chain (
-    if branch <= current_branch info chain
-    then Printf.printf "branch %s already exists on chain %s\n" Branch.(view branch) Chain.(view chain)
-    else exp
-  )
+  check_chains info chain (fun () ->
+      let open Branch in
+      if to_int branch < 0 then
+        printf "%s is an invalid branch\n" @@ view branch
+      else if branch <= current_branch info chain then
+        printf
+          "branch %s already exists on chain %s\n"
+          (view branch)
+          Chain.(view chain)
+      else exp ())
 
+(** verifies that that [branch] already exists on [chain] *)
 let check_branch_exists info chain branch exp =
-  check_chains info chain (
-    if Branch.to_int branch < 0 || branch > current_branch info chain
-    then Printf.printf "branch %s does not exist on chain %s\n" Branch.(view branch) Chain.(view chain)
-    else exp
-  )
+  check_chains info chain (fun () ->
+      let open Branch in
+      if to_int branch < 0 then
+        printf "%s is an invalid branch\n" @@ view branch
+      else if branch > current_branch info chain then
+        printf
+          "branch %s does not exist on chain %s\n"
+          (view branch)
+          Chain.(view chain)
+      else exp ())
 
 let check_height_add info chain branch h exp =
-  check_branch_exists info chain branch (
-    let hgt = current_height info chain branch in
-    if h <= hgt
-    then Printf.printf "branch %s on chain %s is already at height %d which is higher than %d\n"
-      Branch.(view branch) Chain.(view chain) hgt h
-    else exp
-  )
+  check_branch_exists info chain branch (fun () ->
+      let hgt = current_height info chain branch in
+      if h < 0 then printf "%d is an invalid height\n" h
+      else if h <= hgt then
+        printf
+          "branch %s on chain %s is already at height %d which is higher than \
+           %d\n"
+          Branch.(view branch)
+          Chain.(view chain)
+          hgt
+          h
+      else exp ())
 
-(* Block production *)
-let produce_block info (block : Block.t) =
+let check_sent info chain exp =
+  if sent info chain sys = Messages.empty then
+    printf
+      "the system has no messages waiting on chain %s\n"
+      Chain.(view chain)
+  else exp ()
+
+let check_sysmsgs info chain exp =
+  if Queue.is_empty @@ sysmsgs info chain then
+    printf
+      "the system has no messages to handle on chain %s\n"
+      Chain.(view chain)
+  else exp ()
+
+(** [sys] receives a [msg] on [chain] *)
+let receive_sys info chain msg =
+  let sys_msgs = sysmsgs info chain in
+  let sys_msgs = Queue.push msg sys_msgs ; sys_msgs in
+  let sys_sent = Messages.remove msg @@ sent_sys info chain in
+  info.sysmsgs <- CMap.add chain sys_msgs info.sysmsgs ;
+  info.sent <- CNMap.add (chain, sys) sys_sent info.sent
+
+(** {1 System actions} *)
+
+(** {2 New_block} *)
+
+(* verify that it is appropriatethe to [block] in the current context *)
+let new_block info (block : Block.t) =
   let chain = block.header.chain in
   let branch = block.header.branch in
   let height = block.header.height in
   let exp_hgt = current_height info chain branch + 1 in
-  check_height_add info chain branch height (
-    if height <> exp_hgt
-    then Printf.printf "The next block on chain %s branch %s must at height %d"
-      Chain.(view chain) Branch.(view branch) exp_hgt
-    else
-    let blocks = Blocks.insert block (blocks info chain branch) in
-    info.blocks <- CBMap.add (chain, branch) blocks info.blocks
-  )
+  check_height_add info chain branch height (fun () ->
+      if height <> exp_hgt then
+        printf
+          "The next block on chain %s branch %s must at height %d\n"
+          Chain.(view chain)
+          Branch.(view branch)
+          exp_hgt
+      else
+        let blocks = Blocks.insert block (blocks info chain branch) in
+        (* add action to execution trace *)
+        Execution.sys_new_block chain block info.trace ;
+        (* add [block] to collection on [branch] of [chain] *)
+        info.blocks <- CBMap.add (chain, branch) blocks info.blocks)
 
-let produce_block' info c b height n =
-  let block : Block.t = {
-    header = { chain = Chain.id c; branch = Branch.id b; height};
-    ops = (height, n) }
-    in
-    produce_block info block
+let new_block' info c b height n =
+  let block : Block.t =
+    {
+      header = {chain = Chain.id c; branch = Branch.id b; height};
+      ops = (height, n);
+    }
+  in
+  new_block info block
 
-(* randomize over chains, branches, num_ops, (height is determined) *)
-let produce_block_random info =
+(** randomize over chains, branches, num_ops, (height is determined) *)
+let new_block_random info =
   let c = Random.int Chain.(to_int info.chain) + 1 in
   let chain = Chain.id c in
   let b = Random.int Branch.(to_int (current_branch info chain) + 1) in
   let h = current_height info chain (Branch.id b) + 1 in
   let n = Random.int 10 in
-  produce_block' info c b h n
+  new_block' info c b h n
 
-(* Add new chain *)
+(** {2 New_chain} *)
 let new_chain info =
-  let c = Chain.to_int info.chain + 1 in
-  info.chain <- Chain.id c
+  let chain = Chain.(id @@ (to_int info.chain + 1)) in
+  (* add action to execution trace *)
+  Execution.sys_new_chain chain info.trace ;
+  (* update chain *)
+  info.chain <- chain ;
+  (* new chain gets branch 0 *)
+  info.branch <- CMap.add chain Branch.(id 0) info.branch
+
+(** {2 New_branch} *)
 
 (* Add new branch on existing [chain] *)
 let new_branch info chain =
-  check_chains info chain (
-    let b = Branch.(to_int (current_branch info chain) + 1 |> id) in
-    info.branch <- CMap.add chain b info.branch
-  )
+  check_chains info chain (fun () ->
+      let branch = Branch.(id @@ (to_int (current_branch info chain) + 1)) in
+      (* add action to execution trace *)
+      Execution.sys_new_branch chain branch info.trace ;
+      (* update branch *)
+      info.branch <- CMap.add chain branch info.branch)
+
+(** {2 Receive} *)
+
+(* [sys] rececieves the "first" message from their mailbox *)
+let receive_first info chain =
+  check_sent info chain (fun () ->
+      match Messages.to_list @@ sent_sys info chain with
+      | [] ->
+          assert false
+      | msg :: _ ->
+          (* add action to execution trace *)
+          Execution.sys_recv chain msg info.trace ;
+          (* [sys] receives [msg] *)
+          receive_sys info chain msg)
+
+(** {2 Advertise} *)
+
+let send_msg info chain node sys_msg =
+  let updated = Messages.add sys_msg @@ sent info chain node in
+  info.sent <- CNMap.add (chain, node) updated info.sent
+
+let broadcast info chain gen_msg =
+  let open List in
+  let active_msgs = map (fun n -> (n, gen_msg n)) @@ active info chain in
+  iter (fun (n, m) -> send_msg info chain n m) active_msgs
+
+(** {3 Current_branch} *)
+
+let advertise_branch_one info chain node =
+  check_active info chain node (fun () ->
+      let branch = current_branch info chain in
+      let msg =
+        Message.Msg (Id.id 0, node, Msg.(Adv (Current_branch (chain, branch))))
+      in
+      (* add action to execution trace *)
+      Execution.sys_adv_one node chain msg info.trace ;
+      (* [sys] sends [msg] to [node] *)
+      send_msg info chain node msg)
+
+let advertise_branch_all info chain =
+  check_any_active info chain (fun () ->
+      let branch = current_branch info chain in
+      let msg = Msg.(Adv (Current_branch (chain, branch))) in
+      let gen_msg n = Message.Msg (Id.id 0, n, msg) in
+      (* add action to execution trace *)
+      Execution.sys_adv_all chain msg info.trace ;
+      (* [sys] sends [msg] to [node] *)
+      broadcast info chain gen_msg)
+
+(** {3 Current_head} *)
+let advertise_head_one info chain node branch =
+  check_active info chain node (fun () ->
+      let height = current_height info chain branch in
+      let msg =
+        Message.Msg
+          (Id.id 0, node, Msg.(Adv (Current_head (chain, branch, height))))
+      in
+      (* add action to execution trace *)
+      Execution.sys_adv_one node chain msg info.trace ;
+      (* [sys] sends [msg] to [node] *)
+      send_msg info chain node msg)
+
+let advertise_head_all info chain branch =
+  check_any_active info chain (fun () ->
+      let height = current_height info chain branch in
+      let msg = Msg.(Adv (Current_head (chain, branch, height))) in
+      let gen_msg n = Message.Msg (Id.id 0, n, msg) in
+      (* add action to execution trace *)
+      Execution.sys_adv_all chain msg info.trace ;
+      (* [sys] sends [msg] to [node] *)
+      broadcast info chain gen_msg)
+
+(** {2 Node actions that affect the network} *)
+
+let activate_node info chain node =
+  let updated = List.sort_uniq compare @@ (node :: active info chain) in
+  info.active <- CMap.add chain updated info.active
+
+let deactivate_node info chain node =
+  let updated = List.remove_all node @@ active info chain in
+  info.active <- CMap.add chain updated info.active
+
+let receive_msg info chain node msg =
+  let updated = Messages.remove msg @@ sent info chain node in
+  info.sent <- CNMap.add (chain, node) updated info.sent

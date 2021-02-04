@@ -51,6 +51,7 @@ let init nodes =
     nodes;
   }
 
+(** [sys] is node 0 *)
 let sys = Id.id 0
 
 (** active nodes on [chain] *)
@@ -107,3 +108,49 @@ let chains info =
   else
     let rec range a b = if a = b then [b] else a :: range (a + 1) b in
     List.map id (range 1 c)
+
+(** list of all nodes *)
+let nodes info = Array.to_list info.nodes
+
+let has_active_on_chain info chain = active info chain <> []
+
+let chains_with_active info =
+  List.filter (has_active_on_chain info) @@ chains info
+
+let has_blocks_on_branch info chain branch =
+  blocks info chain branch <> Blocks.empty
+
+let has_blocks_on_chain info chain =
+  List.exists (has_blocks_on_branch info chain) @@ branches info chain
+
+let chains_with_blocks info =
+  List.filter (has_blocks_on_chain info) @@ chains info
+
+let branches_with_blocks info chain =
+  List.filter (has_blocks_on_branch info chain) @@ branches info chain
+
+let has_branches_on_chain info chain = branches info chain <> []
+
+let chains_with_branches info =
+  List.filter (has_branches_on_chain info) @@ chains info
+
+let has_height_on_branch info chain branch =
+  current_height info chain branch >= 0
+
+let has_height_on_chain info chain =
+  List.exists (has_height_on_branch info chain) @@ branches info chain
+
+let chains_with_height info =
+  List.filter (has_height_on_chain info) @@ chains info
+
+let has_sent_by_node info chain node = sent info chain node <> Messages.empty
+
+let has_sent_on_chain info chain =
+  List.exists (has_sent_by_node info chain) @@ nodes info
+
+let chains_with_sent info = List.filter (has_sent_on_chain info) @@ chains info
+
+let has_sysmsgs_on_chain info chain = not (Queue.is_empty @@ sysmsgs info chain)
+
+let chains_with_sysmsgs info =
+  List.filter (has_sysmsgs_on_chain info) @@ chains info
