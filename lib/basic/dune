@@ -1,4 +1,4 @@
 (library
  (name basic)
- (public_name tla_debugger.basic)
+ (public_name node_debugger.basic)
  (libraries core))

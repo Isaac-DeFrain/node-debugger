@@ -1,4 +1,4 @@
 (executable
- (public_name tla_debugger)
+ (public_name node_debugger)
  (name main)
- (libraries tla_debugger))
+ (libraries node_debugger))

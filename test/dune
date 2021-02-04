@@ -1,2 +1,4 @@
 (test
- (name tla_debugger))
+ (name node_debugger)
+ (libraries basic execution initial_state network_info node_info
+   inverse_action))

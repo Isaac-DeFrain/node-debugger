@@ -2,14 +2,14 @@
 
 [@@@warning "-27"]
 
-(** Enabling conditions for node & system actions *)
+(** {1 Enabling conditions for node & system actions} *)
 
 open Basic
 open Type
 open View
 open Printf
 
-(** System actions *)
+(** {2 System actions} *)
 let view_new_chain _ = "New_chain"
 
 let view_new_branch _ = "New_branch"
@@ -24,6 +24,8 @@ let sprintf_cb chain =
 let chains_with_active_node info =
   List.(filter (fun c -> remove_all sys @@ active_nodes info c <> []))
   @@ chains info
+
+(** {3 Viewing functions} *)
 
 let view_advertise_curr_branch_sys info =
   let active_chains = chains_with_active_node info in
@@ -67,7 +69,7 @@ let view_handle_sys info =
     "Handle_sys\n" ^ sprintf_c @@ String.concat_comma
     @@ List.(map Chain.view @@ filter (handle_sys info) hdl_chains)
 
-(** Node actions *)
+(** {2 Node actions} *)
 
 let sprintf_nc node = sprintf "    node %s :> chain(s) %s" Id.(view node)
 
@@ -152,7 +154,7 @@ let eval_all x = function
       in
       aux x [] fs
 
-(* TODO print red if disabled, green if enabled *)
+(** {2 Viewing enabling conditions} *)
 let view_enabled_sys info =
   eval_all
     info
@@ -171,7 +173,7 @@ let view_enabled_node info =
 
 open Execution.Action
 
-(** Enabling conditions for actions *)
+(** {1 Enabling conditions for actions} *)
 
 let rec enabled info = function
   | Node node_action ->

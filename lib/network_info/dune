@@ -1,4 +1,4 @@
 (library
  (name network_info)
- (public_name tla_debugger.network_info)
+ (public_name node_debugger.network_info)
  (libraries basic execution))

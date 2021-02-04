@@ -15,6 +15,8 @@ let rec remove b = function
       let cmp = compare b hd in
       if cmp = 0 then tl else if cmp < 0 then bs else hd :: remove b tl
 
+let of_list = List.sort_uniq Block.compare
+
 let to_list bs = bs
 
 let chain_list blocks =

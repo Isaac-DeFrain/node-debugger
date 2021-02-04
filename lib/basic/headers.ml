@@ -15,6 +15,8 @@ let rec remove h = function
       let cmp = compare h hd in
       if cmp = 0 then tl else if cmp < 0 then hs else hd :: remove h tl
 
+let of_list = List.sort_uniq Header.compare
+
 let to_list hs = hs
 
 let view = function

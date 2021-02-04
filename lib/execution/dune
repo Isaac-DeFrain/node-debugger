@@ -1,4 +1,4 @@
 (library
  (name execution)
- (public_name tla_debugger.execution)
+ (public_name node_debugger.execution)
  (libraries basic))
