@@ -1,0 +1,4 @@
+(library
+ (name initial_state)
+ (public_name node_debugger.initial_state)
+ (libraries basic execution network_info node_info))
