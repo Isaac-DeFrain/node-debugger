@@ -22,7 +22,7 @@ let sprintf_cb chain =
   sprintf "    chain %s :> branch(es) %s" Chain.(view chain)
 
 let chains_with_active_node info =
-  List.(filter (fun c -> remove_all sys @@ active_nodes info c <> []))
+  List.(filter ~f:(fun c -> remove_all sys @@ active_nodes info c <> []))
   @@ chains info
 
 (** {3 Viewing functions} *)
@@ -33,7 +33,7 @@ let view_advertise_curr_branch_sys info =
   else
     sprintf "Advertise: Current_branch on chain(s) %s"
     @@ String.concat_comma
-    @@ List.map Chain.view active_chains
+    @@ List.map ~f:Chain.view active_chains
 
 let view_advertise_curr_head_sys info =
   let active_chains = chains_with_active_node info in
@@ -41,8 +41,8 @@ let view_advertise_curr_head_sys info =
   else
     "Advertise: Current_head\n" ^ String.concat_endline
     @@ List.(
-         map (fun c ->
-             sprintf_cb c @@ String.concat_comma @@ map Branch.view
+         map ~f:(fun c ->
+             sprintf_cb c @@ String.concat_comma @@ map ~f:Branch.view
              @@ Network_info.branches info.network c))
          active_chains
 
@@ -56,26 +56,27 @@ let view_advertise_curr_head_sys info =
 let receive_sys info chain = sent info chain sys <> Messages.empty
 
 let view_receive_sys info =
-  let recv_chains = List.filter (receive_sys info) @@ chains info in
+  let recv_chains = List.filter ~f:(receive_sys info) @@ chains info in
   if recv_chains = [] then ""
   else
     "Receive_sys\n" ^ sprintf_c @@ String.concat_comma
-    @@ List.(map Chain.view @@ filter (receive_sys info) recv_chains)
+    @@ List.(map ~f:Chain.view @@ filter ~f:(receive_sys info) recv_chains)
 
 let handle_sys info chain = not (Queue.is_empty @@ sysmsgs info chain)
 
 let view_handle_sys info =
-  let hdl_chains = List.filter (handle_sys info) @@ chains info in
+  let hdl_chains = List.filter ~f:(handle_sys info) @@ chains info in
   if hdl_chains = [] then ""
   else
     "Handle_sys\n" ^ sprintf_c @@ String.concat_comma
-    @@ List.(map Chain.view @@ filter (handle_sys info) hdl_chains)
+    @@ List.(map ~f:Chain.view @@ filter ~f:(handle_sys info) hdl_chains)
 
 (** {2 Node actions} *)
 
 let sprintf_nc node = sprintf "    node %s :> chain(s) %s" Id.(view node)
 
-let activate info node chain = not (List.mem chain @@ active info node)
+let activate info node chain =
+  not (List.mem (active info node) chain ~equal:Chain.equal)
 
 (* returns inactive nodes and which chains they are inactive on *)
 (* these are all the nodes that can do an activate action *)
@@ -85,8 +86,8 @@ let view_activate info =
   else
     "Activate\n" ^ String.concat_endline
     @@ List.(
-         map (fun n ->
-             sprintf_nc n @@ String.concat_comma @@ map Chain.view
+         map ~f:(fun n ->
+             sprintf_nc n @@ String.concat_comma @@ map ~f:Chain.view
              @@ inactive_chains info n))
          inactive_some
 
@@ -98,18 +99,18 @@ let view_deactivate info =
   else
     "Deactivate\n" ^ String.concat_endline
     @@ List.(
-         map (fun n ->
-             sprintf_nc n @@ String.concat_comma @@ map Chain.view
+         map ~f:(fun n ->
+             sprintf_nc n @@ String.concat_comma @@ map ~f:Chain.view
              @@ active info n))
          active_some
 
 let receive info node chain = sent info chain node <> Messages.empty
 
 let chains_with_msgs_to_recv info node =
-  List.filter (receive info node) @@ active info node
+  List.filter ~f:(receive info node) @@ active info node
 
 let nodes_with_msg_to_recv info =
-  List.filter (fun n -> chains_with_msgs_to_recv info n <> []) @@ nodes info
+  List.filter ~f:(fun n -> chains_with_msgs_to_recv info n <> []) @@ nodes info
 
 let view_receive info =
   let msg_nodes = nodes_with_msg_to_recv info in
@@ -117,18 +118,19 @@ let view_receive info =
   else
     "Receive\n" ^ String.concat_endline
     @@ List.(
-         map (fun n ->
-             sprintf_nc n @@ String.concat_comma @@ map Chain.view
+         map ~f:(fun n ->
+             sprintf_nc n @@ String.concat_comma @@ map ~f:Chain.view
              @@ chains_with_msgs_to_recv info n))
          msg_nodes
 
 let handle info node chain = not (Queue.is_empty @@ messages info node chain)
 
 let chains_with_msg_to_hdl info node =
-  List.filter (handle info node) @@ active info node
+  List.filter ~f:(handle info node) @@ active info node
 
 let nodes_with_msg_to_hdl info =
-  List.(filter (fun n -> exists (fun c -> handle info n c) @@ chains info))
+  List.(
+    filter ~f:(fun n -> exists ~f:(fun c -> handle info n c) @@ chains info))
   @@ nodes_active_on_some_chain info
 
 let view_handle info =
@@ -137,8 +139,8 @@ let view_handle info =
   else
     "Handle\n" ^ String.concat_endline
     @@ List.(
-         map (fun n ->
-             sprintf_nc n @@ String.concat_comma @@ map Chain.view
+         map ~f:(fun n ->
+             sprintf_nc n @@ String.concat_comma @@ map ~f:Chain.view
              @@ chains_with_msg_to_hdl info n))
          hdl_nodes
 

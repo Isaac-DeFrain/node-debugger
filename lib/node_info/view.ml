@@ -14,38 +14,38 @@ let view_nodes info =
   sprintf "[%s]" str
 
 let view_active info node =
-  sprintf_list @@ List.map Chain.view @@ active info node
+  sprintf_list @@ List.map ~f:Chain.view @@ active info node
 
 (** all active chains for all nodes *)
 let view_all_active info =
   let node_id n = String.make 2 ' ' ^ Id.view n ^ " :> " in
-  List.map (fun n -> node_id n ^ view_active info n) @@ nodes info
+  List.map ~f:(fun n -> node_id n ^ view_active info n) @@ nodes info
   |> String.concat_endline
 
 let view_blocks info node chain branch =
-  sprintf_list @@ List.map Block.view @@ blocks_list info node chain branch
+  sprintf_list @@ List.map ~f:Block.view @@ blocks_list info node chain branch
 
 let view_branches info node chain =
-  sprintf_list @@ List.map Branch.view @@ branches info node chain
+  sprintf_list @@ List.map ~f:Branch.view @@ branches info node chain
 
 let view_chains info = Network_info.view_chains info.network
 
 let view_expect info node chain =
-  sprintf_list @@ List.map Message.view @@ expect_list info node chain
+  sprintf_list @@ List.map ~f:Message.view @@ expect_list info node chain
 
 let view_headers info node chain =
-  sprintf_list @@ List.map Header.view @@ headers_list info node chain
+  sprintf_list @@ List.map ~f:Header.view @@ headers_list info node chain
 
 let view_heights info node chain =
   let view_heights_on_branch b =
     sprintf "%s :> %d" Branch.(view b) @@ height info node chain b
   in
   sprintf "(%s)" @@ String.concat_comma
-  @@ List.map view_heights_on_branch
+  @@ List.map ~f:view_heights_on_branch
   @@ branches info node chain
 
 let view_messages info node chain =
-  sprintf_list @@ List.map Message.view @@ messages_list info node chain
+  sprintf_list @@ List.map ~f:Message.view @@ messages_list info node chain
 
 (* node viewing *)
 let node_viewer ?(sp = 2) info node viewer some_chains =
@@ -53,8 +53,8 @@ let node_viewer ?(sp = 2) info node viewer some_chains =
   let chain_id c = make sp ' ' ^ Chain.view c ^ " :> " in
   concat_endline
     (List.map
-       (fun c ->
-         if branches info node c = [] then ""
+       ~f:(fun c ->
+         if List.equal Branch.equal [] @@ branches info node c then ""
          else chain_id c ^ viewer info node c)
        some_chains)
 
@@ -63,10 +63,10 @@ let view_node_blocks ?(sp = 2) info node =
   let chain_id c = make sp ' ' ^ Chain.view c ^ " :> " in
   let branch_id b = make (sp + 2) ' ' ^ Branch.view b ^ " :> " in
   concat_endline
-    (List.map (fun c ->
+    (List.map ~f:(fun c ->
          chain_id c
          ^ concat_endline
-             (List.map (fun b -> branch_id b ^ view_blocks info node c b)
+             (List.map ~f:(fun b -> branch_id b ^ view_blocks info node c b)
              @@ branches_with_blocks info node c))
     @@ chains_with_blocks info node)
 
@@ -107,7 +107,7 @@ let print_node' info n = print_node info Id.(id n)
 let state_viewer info viewer some_nodes =
   let node_id n = String.make 2 ' ' ^ Id.view n ^ " :> " in
   String.concat_endline
-  @@ List.map (fun n -> node_id n ^ viewer info n) some_nodes
+  @@ List.map ~f:(fun n -> node_id n ^ viewer info n) some_nodes
 
 let view_state_blocks info =
   state_viewer info (view_node_blocks ~sp:4) @@ nodes_with_blocks info

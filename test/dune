@@ -7,4 +7,6 @@
   network_info
   node_info
   ;  inverse_action
-  ))
+  )
+ (preprocess
+  (pps ppx_jane)))

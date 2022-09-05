@@ -3,6 +3,7 @@ type t =
   ; branch : Branch.t
   ; height : int
   }
+[@@deriving compare, equal]
 
 val compare : t -> t -> int
 

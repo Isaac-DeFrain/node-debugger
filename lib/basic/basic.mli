@@ -15,7 +15,9 @@ module Msg = Msg
 module Ops = Ops
 
 module List : sig
-  include module type of Stdlib.List
+  include module type of Base.List
+
+  val compare_list : 'a list -> 'a list -> int
 
   val remove_all : 'a -> 'a t -> 'a t
 
@@ -27,7 +29,7 @@ module List : sig
 end
 
 module Queue : sig
-  include module type of Stdlib.Queue
+  include module type of Base.Queue
 
   val to_list : 'a t -> 'a list
 
@@ -35,7 +37,7 @@ module Queue : sig
 end
 
 module String : sig
-  include module type of Stdlib.String
+  include module type of Base.String
 
   val concat_comma : string list -> string
 
@@ -47,5 +49,11 @@ module String : sig
 end
 
 val ( @@ ) : ('a -> 'b) -> 'a -> 'b
+
+val compare_int : int -> int -> int
+
+val equal_int : int -> int -> bool
+
+val compare_list : 'a list -> 'a list -> int
 
 val print : ('a -> string) -> 'a -> unit

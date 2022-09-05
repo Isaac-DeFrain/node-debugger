@@ -5,7 +5,7 @@ open Type
 open Printf
 
 let view_list viewer l =
-  sprintf "[%s]" @@ String.concat ", " @@ List.map viewer l
+  sprintf "[%s]" @@ String.concat ~sep:", " @@ List.map ~f:viewer l
 
 (* viewing functions *)
 let view_active info chain = view_list Id.view @@ active info chain
@@ -16,7 +16,9 @@ let view_blocks info chain branch =
 let view_branch info chain = Branch.view @@ current_branch info chain
 
 let view_branches info chain =
-  view_list Branch.view @@ List.sort Branch.compare @@ branches info chain
+  view_list Branch.view
+  @@ List.sort ~compare:Branch.compare
+  @@ branches info chain
 
 let view_chains info = view_list Chain.view @@ chains info
 
@@ -36,7 +38,7 @@ let view_sysmsgs info chain = view_list Message.view @@ sysmsgs_list info chain
 let view_chain_blocks ?(sp = 2) info chain =
   let branch_id b = String.make sp ' ' ^ Branch.view b ^ " :> " in
   String.concat_endline
-  @@ List.map (fun b -> branch_id b ^ view_blocks info chain b)
+  @@ List.map ~f:(fun b -> branch_id b ^ view_blocks info chain b)
   @@ branches_with_blocks info chain
 
 let view_chain_branches info chain =
@@ -45,13 +47,13 @@ let view_chain_branches info chain =
 let view_chain_heights ?(sp = 2) info chain =
   let branch_id b = String.make sp ' ' ^ Branch.view b ^ " :> " in
   String.concat_endline
-  @@ List.map (fun b -> branch_id b ^ view_heights info chain b)
+  @@ List.map ~f:(fun b -> branch_id b ^ view_heights info chain b)
   @@ branches info chain
 
 let view_chain_sent ?(sp = 2) info chain =
   let node_id n = String.make sp ' ' ^ Id.view n ^ " :> " in
   String.concat_endline
-  @@ List.map (fun n -> node_id n ^ view_sent info chain n)
+  @@ List.map ~f:(fun n -> node_id n ^ view_sent info chain n)
   @@ active info chain
 
 let view_chain_sysmsgs info chain =
@@ -74,7 +76,7 @@ let view_chain info chain =
 let state_viewer info viewer some_chains =
   let chain_id c = String.make 2 ' ' ^ Chain.view c ^ " :> " in
   String.concat_endline
-  @@ List.map (fun c -> chain_id c ^ viewer info c) some_chains
+  @@ List.map ~f:(fun c -> chain_id c ^ viewer info c) some_chains
 
 let view_state_active info =
   state_viewer info view_active @@ chains_with_active info

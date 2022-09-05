@@ -29,13 +29,15 @@ let check_nodes info node exp =
 let check_active info node chain exp =
   check_nodes info node (fun () ->
       Network_info.check_chains info.network chain (fun () ->
-          if not (List.mem chain @@ active info node) then not_active node chain
+          if not (List.mem (active info node) chain ~equal:Chain.equal) then
+            not_active node chain
           else exp ()))
 
 (** check if [node] knows about [branch] on [chain] *)
 let check_branches info node chain branch exp =
   check_active info node chain (fun () ->
-      if not (List.mem branch @@ branches info node chain) then
+      if not (List.mem (branches info node chain) branch ~equal:Branch.equal)
+      then
         printf "node %s does not know about branch %s on chain %s"
           Id.(view node)
           Branch.(view branch)
@@ -81,7 +83,9 @@ let check_all_headers info node chain branch height exp =
   check_active info node chain (fun () ->
       let open List in
       let blk_hdrs =
-        map (fun (b : Block.t) -> b.header) (blocks_list info node chain branch)
+        map
+          ~f:(fun (b : Block.t) -> b.header)
+          (blocks_list info node chain branch)
       in
       match headers_list info node chain @ blk_hdrs with
       | [] ->
@@ -91,7 +95,7 @@ let check_all_headers info node chain branch height exp =
       | hs -> (
         match
           filter
-            (fun (h : Header.t) -> h.branch = branch && h.height = height)
+            ~f:(fun (h : Header.t) -> h.branch = branch && h.height = height)
             hs
         with
         | [] ->
@@ -126,7 +130,7 @@ let send_msg info rcvr chain msg =
 let add_msg info node chain msg =
   let messages = messages info node chain in
   let updated =
-    Queue.push msg messages;
+    Queue.enqueue messages msg;
     messages
   in
   info.messages <- NCMap.add (node, chain) updated info.messages
@@ -135,13 +139,13 @@ let add_msg info node chain msg =
 let broadcast info node chain gen_msg =
   let open List in
   let other_active = remove_all node @@ active_nodes info chain in
-  iter (fun n -> send_msg info n chain @@ gen_msg n) other_active
+  iter ~f:(fun n -> send_msg info n chain @@ gen_msg n) other_active
 
 (** [node] broadcasts messages to all other active nodes on [chain] and [sys] *)
 let broadcast_sys info node chain gen_msg =
   let open List in
   let other_active_sys = sys :: (remove_all node @@ active_nodes info chain) in
-  iter (fun r -> send_msg info r chain @@ gen_msg r) other_active_sys
+  iter ~f:(fun r -> send_msg info r chain @@ gen_msg r) other_active_sys
 
 (** [node] registers an [exp] on [chain] *)
 let register_exp info node chain exp =
@@ -159,7 +163,7 @@ let remove_exp info node chain exp =
 let activate ?(trace = true) info node chain =
   check_nodes info node (fun () ->
       Network_info.check_chains info.network chain (fun () ->
-          if List.mem chain (active info node) then
+          if List.mem (active info node) chain ~equal:Chain.equal then
             printf "node %s cannot activate on chain %s\n"
               Id.(view node)
               Chain.(view chain)
@@ -173,9 +177,12 @@ let activate ?(trace = true) info node chain =
           match IdMap.find_opt node info.active with
           | None -> info.active <- IdMap.add node [ chain ] info.active
           | Some chains ->
-            if mem chain chains then already_active node chain
+            if mem chains chain ~equal:Chain.equal then
+              already_active node chain
             else
-              let updated = sort_uniq Chain.compare (chain :: chains) in
+              let updated =
+                dedup_and_sort ~compare:Chain.compare (chain :: chains)
+              in
               info.active <- IdMap.add node updated info.active))
 
 let activate' info n c = activate info Id.(id n) Chain.(id c)
@@ -187,7 +194,7 @@ let deactivate ?(trace = true) info node chain =
       match IdMap.find_opt node info.active with
       | None -> not_active node chain
       | Some chains ->
-        if not (mem chain chains) then not_active node chain
+        if not (mem chains chain ~equal:Chain.equal) then not_active node chain
         else
           let updated = remove_all chain chains in
           (* add action to execution trace *)
@@ -205,7 +212,7 @@ let deactivate' info n c = deactivate info Id.(id n) Chain.(id c)
 let receive_first ?(trace = true) info node chain =
   check_sent info node chain (fun () ->
       let open Network_info in
-      let msg = List.hd @@ sent_list info.network chain node in
+      let msg = List.hd_exn @@ sent_list info.network chain node in
       (* add action to execution trace *)
       if trace then Execution.node_recv node chain msg info.network.trace;
       (* remove [msg] from [node]'s waiting messages *)
@@ -243,7 +250,7 @@ let receive_msg ?(trace = true) info node chain msg =
           Id.(view node)
           Chain.(view chain)
       | msgs ->
-        if not (List.mem msg msgs) then
+        if not (List.mem msgs msg ~equal:Message.equal) then
           printf
             "The message\n\
             \  %s\n\
@@ -269,13 +276,15 @@ let receive_msg' info n c = receive_msg info Id.(id n) Chain.(id c)
 let update_branch ?(trace = true) info node chain branch =
   check_active info node chain (fun () ->
       let bs = branches info node chain in
-      if List.mem branch bs then
+      if List.mem bs branch ~equal:Branch.equal then
         printf "node %s already knows about branch %s on chain %s\n"
           Id.(view node)
           Branch.(view branch)
           Chain.(view chain)
       else
-        let updated = List.sort_uniq Branch.compare (branch :: bs) in
+        let updated =
+          List.dedup_and_sort ~compare:Branch.compare (branch :: bs)
+        in
         (* add action to execution trace *)
         if trace then
           Execution.node_update_branch node chain branch info.network.trace;
@@ -399,7 +408,7 @@ let advertise_head_all ?(trace = true) info node chain branch =
               info.network.trace;
           (* send each other active node the advertisement *)
           iter
-            (fun rcvr -> send_msg info rcvr chain (gen_adv rcvr))
+            ~f:(fun rcvr -> send_msg info rcvr chain (gen_adv rcvr))
             other_active))
 
 (** {4 Request} *)
@@ -507,7 +516,7 @@ let rec handle info node chain =
     (let open Message in
     let open Queue in
     let msgs = messages info node chain in
-    let (Msg (sndr, _, msg)) = pop msgs in
+    let (Msg (sndr, _, msg)) = dequeue_exn msgs in
     match msg with
     | Ack ack -> handle_ack info node sndr chain ack
     | Adv adv -> handle_adv info node chain adv

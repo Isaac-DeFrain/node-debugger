@@ -1,21 +1,25 @@
-type t = Header.t list
+open! Base
+
+type t = Header.t list [@@deriving compare, equal]
 
 let empty = []
 
 let insert h = function
   | [] -> [ h ]
-  | hs -> h :: hs |> List.sort_uniq Header.compare
+  | hs -> h :: hs |> List.dedup_and_sort ~compare:Header.compare
 
 let rec remove h = function
   | [] -> []
   | hd :: tl as hs ->
-    let cmp = compare h hd in
+    let cmp = Header.compare h hd in
     if cmp = 0 then tl else if cmp < 0 then hs else hd :: remove h tl
 
-let of_list = List.sort_uniq Header.compare
+let of_list = List.dedup_and_sort ~compare:Header.compare
 
 let to_list hs = hs
 
 let view = function
   | [] -> "[]"
-  | hs -> "[" ^ String.concat ", " (List.map Header.view hs) ^ "]"
+  | hs ->
+    Caml.Printf.sprintf "[ %s ]"
+    @@ String.concat ~sep:", " (List.map ~f:Header.view hs)

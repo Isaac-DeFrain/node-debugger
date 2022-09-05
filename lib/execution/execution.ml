@@ -63,9 +63,9 @@ let join t1 t2 =
   | [], _ | _, [] -> t1 @ t2
   | _ ->
     let open List in
-    let hd2 = hd t2 in
-    let lst = rev t1 |> hd in
-    if lst = hd2 then t1 @ tl t2
+    let hd2 = hd_exn t2 in
+    let lst = rev t1 |> hd_exn in
+    if lst = hd2 then t1 @ tl_exn t2
     else (
       Printf.printf
         "The last action in the first argument:\n\

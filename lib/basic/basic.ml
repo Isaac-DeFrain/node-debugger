@@ -14,9 +14,15 @@ module Messages = Messages
 module Msg = Msg
 module Ops = Ops
 module List = List
-module Queue = Queue
+module Queue = Base.Queue
 module String = String
 
 let ( @@ ) = Stdlib.( @@ )
 
-let print viewer info = viewer info |> print_endline
+let compare_int = Int.compare
+
+let equal_int = ( = )
+
+let compare_list = List.compare_list
+
+let print viewer info = viewer info |> Stdio.print_endline

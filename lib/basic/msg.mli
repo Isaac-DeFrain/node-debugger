@@ -4,40 +4,44 @@ type t =
   | Err of err_msg
   | Exp of exp_msg
   | Req of req_msg
+[@@deriving compare, equal]
 
 and ack_msg =
   | Ack_current_branch of Chain.t
   | Ack_current_head of Chain.t * Branch.t
-  | Ack_block_header of Chain.t * Branch.t * int
-  | Ack_operations of Chain.t * Branch.t * int
+  | Ack_block_header of Chain.t * Branch.t * Int.t
+  | Ack_operations of Chain.t * Branch.t * Int.t
+[@@deriving compare, equal]
 
 and adv_msg =
   | Current_branch of Chain.t * Branch.t
-  | Current_head of Chain.t * Branch.t * int
-  | Block_header of Chain.t * Branch.t * int * Header.t
-  | Operations of Chain.t * Branch.t * int * Ops.t
+  | Current_head of Chain.t * Branch.t * Int.t
+  | Block_header of Chain.t * Branch.t * Int.t * Header.t
+  | Operations of Chain.t * Branch.t * Int.t * Ops.t
+[@@deriving compare, equal]
 
 and err_msg =
-  | Err_block_header of Chain.t * Branch.t * int
-  | Err_operations of Chain.t * Branch.t * int
+  | Err_block_header of Chain.t * Branch.t * Int.t
+  | Err_operations of Chain.t * Branch.t * Int.t
+[@@deriving compare, equal]
 
 and exp_msg =
   | Exp_current_branch of Id.t * Chain.t
   | Exp_ack_current_branch of Id.t * Chain.t
   | Exp_current_head of Id.t * Chain.t * Branch.t
   | Exp_ack_current_head of Id.t * Chain.t * Branch.t
-  | Exp_block_header of Id.t * Chain.t * Branch.t * int
-  | Exp_ack_block_header of Id.t * Chain.t * Branch.t * int
-  | Exp_operations of Id.t * Chain.t * Branch.t * int
-  | Exp_ack_operations of Id.t * Chain.t * Branch.t * int
+  | Exp_block_header of Id.t * Chain.t * Branch.t * Int.t
+  | Exp_ack_block_header of Id.t * Chain.t * Branch.t * Int.t
+  | Exp_operations of Id.t * Chain.t * Branch.t * Int.t
+  | Exp_ack_operations of Id.t * Chain.t * Branch.t * Int.t
+[@@deriving compare, equal]
 
 and req_msg =
   | Get_current_branch of Chain.t
   | Get_current_head of Chain.t * Branch.t
-  | Get_block_header of Chain.t * Branch.t * int
-  | Get_operations of Chain.t * Branch.t * int
-
-val compare : t -> t -> int
+  | Get_block_header of Chain.t * Branch.t * Int.t
+  | Get_operations of Chain.t * Branch.t * Int.t
+[@@deriving compare, equal]
 
 val expect_msg : Id.t -> t -> exp_msg
 

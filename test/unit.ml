@@ -5,7 +5,7 @@ open Node_info
 open Utils
 
 (** comparing states *)
-let all_true l = List.(for_all (fun b -> b) @@ map snd l)
+let all_true l = List.(for_all ~f:(fun b -> b) @@ map ~f:snd l)
 
 let full_eq state1 state2 =
   [ ("active", state1.active = state2.active)
@@ -26,10 +26,10 @@ let full_eq state1 state2 =
   ]
 
 let equal_except_active state1 state2 =
-  all_true @@ List.remove_assoc "active" @@ full_eq state1 state2
+  all_true @@ Stdlib.List.remove_assoc "active" @@ full_eq state1 state2
 
 let equal_except_messages state1 state2 =
-  all_true @@ List.remove_assoc "messages" @@ full_eq state1 state2
+  all_true @@ Stdlib.List.remove_assoc "messages" @@ full_eq state1 state2
 
 let () = test_file "Unit"
 
@@ -49,10 +49,12 @@ module Node_actions = struct
       activate ~trace:false state node chain;
       state
     in
-    if List.mem chain @@ active initial node then initial = final
+    if List.mem (active initial node) chain ~equal:Chain.equal then
+      initial = final
     else
       let init_active = active initial node in
-      active final node = List.sort Chain.compare @@ (chain :: init_active)
+      active final node
+      = List.sort ~compare:Chain.compare @@ (chain :: init_active)
       && equal_except_active initial final
 
   let deactivate_test () =
@@ -68,11 +70,12 @@ module Node_actions = struct
       deactivate ~trace:false state node chain;
       state
     in
-    if List.mem chain @@ inactive_chains initial node then initial = final
+    if List.mem (inactive_chains initial node) chain ~equal:Chain.equal then
+      initial = final
     else
       let init_active = active initial node in
       (active final node
-      = List.(sort Chain.compare @@ remove_one chain init_active))
+      = List.(sort ~compare:Chain.compare @@ remove_one chain init_active))
       && equal_except_active initial final
 
   let node_receive_test () =
@@ -98,12 +101,14 @@ module Node_actions = struct
       not
         List.(
           for_all
-            (fun n -> mem n @@ active_nodes initial chain)
+            ~f:(fun n -> mem (active_nodes initial chain) n ~equal:Id.equal)
             [ node1; node2 ])
     then initial = final
     else
       let msgs = messages_list initial node1 chain in
-      (msgs = List.(sort Message.compare @@ messages_list final node1 chain))
+      (msgs
+      = List.(sort ~compare:Message.compare @@ messages_list final node1 chain)
+      )
       && equal_except_messages initial final
 
   let tests =

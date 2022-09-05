@@ -2,6 +2,7 @@ type t =
   { header : Header.t
   ; ops : Ops.t
   }
+[@@deriving compare, equal]
 
 let block header ops = { header; ops }
 

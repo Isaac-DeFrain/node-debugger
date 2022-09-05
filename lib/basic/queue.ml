@@ -1,4 +1,4 @@
-include Stdlib.Queue
+include Base.Queue
 
 (** the most recent push is at the hd *)
 let to_list q =
@@ -6,7 +6,7 @@ let to_list q =
   let rec aux acc q =
     if is_empty q then acc
     else
-      let p = pop q in
+      let p = dequeue_exn q in
       aux (p :: acc) q
   in
   aux [] cpy
@@ -18,7 +18,7 @@ let of_list = function
     let rec aux acc = function
       | [] -> acc
       | hd :: tl ->
-        push hd acc;
+        enqueue hd acc;
         aux acc tl
     in
     aux (create ()) l

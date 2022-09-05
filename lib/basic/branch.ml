@@ -5,6 +5,8 @@ let id b = b
 (* branches compared in reverse *)
 let compare x y = compare y x
 
+let equal = ( = )
+
 let to_int b = b
 
 let view = string_of_int

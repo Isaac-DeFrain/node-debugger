@@ -1,17 +1,20 @@
-type t = Message.t list
+open! List
+open! Base
 
-open List
+type t = Message.t list [@@deriving compare, equal]
 
 let empty = []
 
 let length = length
 
-let add m ms = sort Message.compare (m :: ms)
+let add m ms = sort ~compare:Message.compare (m :: ms)
 
 let remove = remove_one
 
 let to_list msgs = msgs
 
-let of_list msgs = List.sort Message.compare msgs
+let of_list msgs = sort ~compare:Message.compare msgs
 
-let view msgs = "[" ^ String.concat ", " (map Message.view msgs) ^ "]"
+let view msgs =
+  Caml.Printf.sprintf "[ %s ]"
+  @@ String.concat ~sep:", " (map ~f:Message.view msgs)

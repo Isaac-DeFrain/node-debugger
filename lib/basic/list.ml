@@ -1,8 +1,15 @@
-include Stdlib.List
+include Base.List
+
+let compare_list l1 l2 =
+  let lt (x, y) = Core.Poly.compare x y < 0 in
+  let leq (x, y) = Core.Poly.compare x y <= 0 in
+  if for_all ~f:lt @@ zip_exn l1 l2 then -1
+  else if for_all ~f:leq @@ zip_exn l1 l2 then 0
+  else 1
 
 let remove_all elem = function
   | [] -> []
-  | l -> filter (fun x -> x <> elem) l
+  | l -> filter ~f:(fun x -> x <> elem) l
 
 let remove_one elem = function
   | [] -> []
@@ -23,4 +30,6 @@ let rec remove_list l = function
 
 let random_elem = function
   | [] -> raise (Failure "random_elem")
-  | l -> nth l @@ Random.int @@ length l
+  | l -> nth_exn l @@ Random.int @@ length l
+
+let equal_list = equal

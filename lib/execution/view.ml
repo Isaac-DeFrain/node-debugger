@@ -2,7 +2,8 @@ open! Action
 open! Basic
 open Printf
 
-let view_nodes ns = sprintf "[%s]" (String.concat ", " @@ List.map Id.view ns)
+let view_nodes ns =
+  sprintf "[%s]" (String.concat ~sep:", " @@ List.map ~f:Id.view ns)
 
 let rec view = function
   | Node action -> sprintf "Node(%s)" @@ view_node action
@@ -85,4 +86,4 @@ and view_sys = function
   | Adv_all_sys (c, m) ->
     sprintf "Adv_all(chain %s, %s)" Chain.(view c) Msg.(view m)
 
-let view_many acts = String.concat_comma @@ List.map view acts
+let view_many acts = String.concat_comma @@ List.map ~f:view acts

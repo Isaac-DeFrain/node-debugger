@@ -18,7 +18,7 @@ let check_chains info chain exp =
 (** verifies that [node] is active on [chain] in the current context *)
 let check_active info chain node exp =
   check_chains info chain (fun () ->
-      if not (List.mem node @@ active info chain) then
+      if not (List.mem (active info chain) node ~equal:Id.equal) then
         printf "node %s is not active on chain %s\n"
           Id.(view node)
           Chain.(view chain)
@@ -80,7 +80,7 @@ let check_sysmsgs info chain exp =
 let receive_sys info chain msg =
   let sys_msgs = sysmsgs info chain in
   let sys_msgs =
-    Queue.push msg sys_msgs;
+    Queue.enqueue sys_msgs msg;
     sys_msgs
   in
   let sys_sent = Messages.remove msg @@ sent_sys info chain in
@@ -179,8 +179,8 @@ let send_msg info chain node sys_msg =
 
 let broadcast info chain gen_msg =
   let open List in
-  let active_msgs = map (fun n -> (n, gen_msg n)) @@ active info chain in
-  iter (fun (n, m) -> send_msg info chain n m) active_msgs
+  let active_msgs = map ~f:(fun n -> (n, gen_msg n)) @@ active info chain in
+  iter ~f:(fun (n, m) -> send_msg info chain n m) active_msgs
 
 (** {3 Current_branch} *)
 
@@ -231,7 +231,7 @@ let advertise_head_all ?(trace = true) info chain branch =
 (** {2 Node actions that affect the network} *)
 
 let activate_node info chain node =
-  let updated = List.sort_uniq compare @@ (node :: active info chain) in
+  let updated = List.dedup_and_sort ~compare @@ (node :: active info chain) in
   info.active <- CMap.add chain updated info.active
 
 let deactivate_node info chain node =
