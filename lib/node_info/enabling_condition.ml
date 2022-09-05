@@ -47,9 +47,11 @@ let view_advertise_curr_head_sys info =
          active_chains
 
 (* TODO advertise Block_header, Operations *)
-(* for Advertise_sys Block_header to be enabled, sys must have a request for that header as the next sysmsgs *)
+(* for Advertise_sys Block_header to be enabled, sys must have a request for
+   that header as the next sysmsgs *)
 
-(* for Advertise_sys Operations to be enabled, sys must have a request for those ops as the next sysmsgs *)
+(* for Advertise_sys Operations to be enabled, sys must have a request for those
+   ops as the next sysmsgs *)
 
 let receive_sys info chain = sent info chain sys <> Messages.empty
 
@@ -143,51 +145,43 @@ let view_handle info =
 (* TODO finish enabling conditions for node actions *)
 
 let eval_all x = function
-  | [] ->
-      []
+  | [] -> []
   | fs ->
-      let rec aux x acc = function
-        | [] ->
-            List.rev acc
-        | hd :: tl ->
-            aux x (hd x :: acc) tl
-      in
-      aux x [] fs
+    let rec aux x acc = function
+      | [] -> List.rev acc
+      | hd :: tl -> aux x (hd x :: acc) tl
+    in
+    aux x [] fs
 
 (** {2 Viewing enabling conditions} *)
 let view_enabled_sys info =
-  eval_all
-    info
-    [ view_new_chain;
-      view_new_branch;
-      view_new_block;
-      view_receive_sys;
-      view_handle_sys;
-      view_advertise_curr_branch_sys;
-      view_advertise_curr_head_sys ]
+  eval_all info
+    [ view_new_chain
+    ; view_new_branch
+    ; view_new_block
+    ; view_receive_sys
+    ; view_handle_sys
+    ; view_advertise_curr_branch_sys
+    ; view_advertise_curr_head_sys
+    ]
   |> List.remove_all ""
 
 let view_enabled_node info =
-  eval_all info [view_activate; view_deactivate; view_receive; view_handle]
-  |> fun l -> List.remove_all "" l @ [""]
+  eval_all info [ view_activate; view_deactivate; view_receive; view_handle ]
+  |> fun l -> List.remove_all "" l @ [ "" ]
 
 open Execution.Action
 
 (** {1 Enabling conditions for actions} *)
 
 let rec enabled info = function
-  | Node node_action ->
-      enabled_node info node_action
-  | Sys sys_action ->
-      enabled_sys info sys_action
+  | Node node_action -> enabled_node info node_action
+  | Sys sys_action -> enabled_sys info sys_action
 
 and enabled_node info = function
-  | Activate (n, c) ->
-      activate info n c
-  | Deactivate (n, c) ->
-      deactivate info n c
-  | Recv_node (n, c, _) ->
-      receive info n c
+  | Activate (n, c) -> activate info n c
+  | Deactivate (n, c) -> deactivate info n c
+  | Recv_node (n, c, _) -> receive info n c
   | Ack (n, c, _)
   | Adv_one (n, _, c, _)
   | Adv_all (n, c, _, _)
@@ -197,21 +191,17 @@ and enabled_node info = function
   | Handle_ack (n, c, _)
   | Handle_adv (n, c, _)
   | Handle_err (n, c, _)
-  | Handle_req (n, c, _) ->
-      handle info n c
+  | Handle_req (n, c, _) -> handle info n c
   | Update_branch (n, c, _) ->
-      raise @@ Failure "TODO Update_branch enabled_node"
+    raise @@ Failure "TODO Update_branch enabled_node"
   | Update_height (n, c, _, _) ->
-      raise @@ Failure "TODO Update_height enabled_node"
+    raise @@ Failure "TODO Update_height enabled_node"
   | Update_headers (n, c, _) ->
-      raise @@ Failure "TODO Update_headers enabled_node"
+    raise @@ Failure "TODO Update_headers enabled_node"
   | Update_blocks (n, c, _) ->
-      raise @@ Failure "TODO Update_blocks enabled_node"
+    raise @@ Failure "TODO Update_blocks enabled_node"
 
 and enabled_sys info = function
-  | New_chain _ | New_block _ | New_branch _ ->
-      true
-  | Recv_sys (c, _) ->
-      receive_sys info c
-  | Adv_one_sys (_, c, _) | Adv_all_sys (c, _) ->
-      handle_sys info c
+  | New_chain _ | New_block _ | New_branch _ -> true
+  | Recv_sys (c, _) -> receive_sys info c
+  | Adv_one_sys (_, c, _) | Adv_all_sys (c, _) -> handle_sys info c

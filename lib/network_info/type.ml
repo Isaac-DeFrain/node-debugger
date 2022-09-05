@@ -23,32 +23,31 @@ module CNMap = Map.Make (struct
     if c_cmp < 0 || c_cmp > 0 then c_cmp else compare n1 n2
 end)
 
-type t = {
-  mutable active : Id.t list CMap.t;
-  mutable blocks : Blocks.t CBMap.t;
-  mutable branch : Branch.t CMap.t;  (** highest branch on chain *)
-  mutable chain : Chain.t;  (** hightest chain *)
-  mutable height : int CBMap.t;
-  mutable sent : Messages.t CNMap.t;
-  mutable sysmsgs : Message.t Queue.t CMap.t;
-  trace : Execution.t;
-  nodes : Id.t array;
-}
+type t =
+  { mutable active : Id.t list CMap.t
+  ; mutable blocks : Blocks.t CBMap.t
+  ; mutable branch : Branch.t CMap.t  (** highest branch on chain *)
+  ; mutable chain : Chain.t  (** hightest chain *)
+  ; mutable height : int CBMap.t
+  ; mutable sent : Messages.t CNMap.t
+  ; mutable sysmsgs : Message.t Queue.t CMap.t
+  ; trace : Execution.t
+  ; nodes : Id.t array
+  }
 
 (* chain 1 and branch 0 exist upon creation *)
 let init nodes =
   let branch = Branch.id 0 in
   let chain = Chain.id 1 in
-  {
-    active = CMap.(add chain [] empty);
-    blocks = CBMap.(add (chain, branch) Blocks.empty empty);
-    branch = CMap.(add chain branch empty);
-    chain;
-    height = CBMap.(add (chain, branch) (-1) empty);
-    sent = CNMap.empty;
-    sysmsgs = CMap.(add chain (Queue.create ()) empty);
-    trace = Execution.init ();
-    nodes;
+  { active = CMap.(add chain [] empty)
+  ; blocks = CBMap.(add (chain, branch) Blocks.empty empty)
+  ; branch = CMap.(add chain branch empty)
+  ; chain
+  ; height = CBMap.(add (chain, branch) (-1) empty)
+  ; sent = CNMap.empty
+  ; sysmsgs = CMap.(add chain (Queue.create ()) empty)
+  ; trace = Execution.init ()
+  ; nodes
   }
 
 (** [sys] is node 0 *)
@@ -83,7 +82,7 @@ let current_height info chain branch =
 (** list of all heights on [branch] of [chain] *)
 let heights info chain branch =
   let h = current_height info chain branch in
-  let rec range a b = if a = b then [b] else a :: range (a + 1) b in
+  let rec range a b = if a = b then [ b ] else a :: range (a + 1) b in
   if h < 0 then [] else range 0 h
 
 (** list of messages sent to [node] on [chain], order is not important *)
@@ -104,9 +103,9 @@ let sysmsgs_list info chain = sysmsgs info chain |> Queue.to_list
 let chains info =
   let open Chain in
   let c = to_int info.chain in
-  if c = 1 then [id c]
+  if c = 1 then [ id c ]
   else
-    let rec range a b = if a = b then [b] else a :: range (a + 1) b in
+    let rec range a b = if a = b then [ b ] else a :: range (a + 1) b in
     List.map id (range 1 c)
 
 (** list of all nodes *)

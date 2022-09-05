@@ -2,16 +2,21 @@
 
 open Basic
 module Action = Action
+open View
 
-(** An execution [trace] is a list of actions along with the number of steps taken *)
-type t = {mutable actions : Action.t list; mutable steps : int}
+(** An execution [trace] is a list of actions along with the number of steps
+    taken *)
+type t =
+  { mutable actions : Action.t list
+  ; mutable steps : int
+  }
 
-let init () = {actions = []; steps = 0}
+let init () = { actions = []; steps = 0 }
 
 (** Adds an [action] and increments the [step] *)
 let add action t =
   let acts = action :: t.actions in
-  t.actions <- acts ;
+  t.actions <- acts;
   t.steps <- t.steps + 1
 
 exception Empty
@@ -25,7 +30,7 @@ let check_valid t exp =
   else
     let len = List.length t.actions in
     if t.steps <> len then
-      raise @@ Step_action_mismatch (Action.view_many t.actions, t.steps)
+      raise @@ Step_action_mismatch (view_many t.actions, t.steps)
     else exp ()
 
 (** string representation of an execution [trace] *)
@@ -34,13 +39,9 @@ let view t =
       let len = List.length t.actions in
       let actions = t.actions in
       let rec aux acc stp = function
-        | [] ->
-            acc
+        | [] -> acc
         | hd :: tl ->
-            aux
-              (Printf.sprintf "Step %d: %s" stp Action.(view hd) :: acc)
-              (stp - 1)
-              tl
+          aux (Printf.sprintf "Step %d: %s" stp (view hd) :: acc) (stp - 1) tl
       in
       aux [] len actions |> String.concat_endline)
 
@@ -48,34 +49,30 @@ let view t =
 let prev t =
   let len = List.length t.actions in
   if t.steps <> len then
-    raise @@ Step_action_mismatch (Action.view_many t.actions, t.steps)
+    raise @@ Step_action_mismatch (view_many t.actions, t.steps)
   else if t.steps = 0 then raise Empty
   else
     match t.actions with
     | _ :: tl ->
-        t.actions <- tl ;
-        t.steps <- t.steps - 1
-    | _ ->
-        assert false
+      t.actions <- tl;
+      t.steps <- t.steps - 1
+    | _ -> assert false
 
 let join t1 t2 =
   match (t1, t2) with
-  | ([], _) | (_, []) ->
-      t1 @ t2
+  | [], _ | _, [] -> t1 @ t2
   | _ ->
-      let open List in
-      let hd2 = hd t2 in
-      let lst = rev t1 |> hd in
-      if lst = hd2 then t1 @ tl t2
-      else (
-        Printf.printf
-          "The last action in the first argument:\n\
-          \  %s\n\
-           does not match the first action in the second argument:\n\
-          \  %s"
-          Action.(view lst)
-          Action.(view hd2) ;
-        [] )
+    let open List in
+    let hd2 = hd t2 in
+    let lst = rev t1 |> hd in
+    if lst = hd2 then t1 @ tl t2
+    else (
+      Printf.printf
+        "The last action in the first argument:\n\
+        \  %s\n\
+         does not match the first action in the second argument:\n\
+        \  %s" (view lst) (view hd2);
+      [])
 
 (* System actions *)
 open Action

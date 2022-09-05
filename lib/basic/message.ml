@@ -8,8 +8,7 @@ let compare (Msg (f1, t1, m1)) (Msg (f2, t2, m2)) =
   else compare m1 m2
 
 let view (Msg (sndr, rcvr, msg)) =
-  Printf.sprintf
-    "Msg(from: %s, to: %s, %s)"
+  Printf.sprintf "Msg(from: %s, to: %s, %s)"
     Id.(view sndr)
     Id.(view rcvr)
     Msg.(view msg)

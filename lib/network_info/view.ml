@@ -62,13 +62,14 @@ let view_chain_sysmsgs info chain =
 (* view of a single [chain] *)
 let view_chain info chain =
   String.concat_endline
-    [ "chain: " ^ Chain.view chain;
-      "active: " ^ view_active info chain;
-      "blocks:\n" ^ view_chain_blocks info chain;
-      "branch: " ^ view_chain_branches info chain;
-      "height:\n" ^ view_chain_heights info chain;
-      "sent:\n" ^ view_chain_sent info chain;
-      "sysmsgs: " ^ view_chain_sysmsgs info chain ]
+    [ "chain: " ^ Chain.view chain
+    ; "active: " ^ view_active info chain
+    ; "blocks:\n" ^ view_chain_blocks info chain
+    ; "branch: " ^ view_chain_branches info chain
+    ; "height:\n" ^ view_chain_heights info chain
+    ; "sent:\n" ^ view_chain_sent info chain
+    ; "sysmsgs: " ^ view_chain_sysmsgs info chain
+    ]
 
 let state_viewer info viewer some_chains =
   let chain_id c = String.make 2 ' ' ^ Chain.view c ^ " :> " in
@@ -96,13 +97,14 @@ let view_state_sysmsgs info =
 (* view of complete state of the network *)
 let view info =
   String.concat_endline
-    [ "chains: " ^ view_chains info;
-      "nodes:  " ^ view_nodes info;
-      "active:\n" ^ view_state_active info;
-      "blocks:\n" ^ view_state_blocks info;
-      "branch:\n" ^ view_state_branch info;
-      "height:\n" ^ view_state_heights info;
-      "sent:\n" ^ view_state_sent info;
-      "sysmsgs:\n" ^ view_state_sysmsgs info ]
+    [ "chains: " ^ view_chains info
+    ; "nodes:  " ^ view_nodes info
+    ; "active:\n" ^ view_state_active info
+    ; "blocks:\n" ^ view_state_blocks info
+    ; "branch:\n" ^ view_state_branch info
+    ; "height:\n" ^ view_state_heights info
+    ; "sent:\n" ^ view_state_sent info
+    ; "sysmsgs:\n" ^ view_state_sysmsgs info
+    ]
 
 let view_trace t = Execution.view t.trace

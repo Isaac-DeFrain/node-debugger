@@ -86,9 +86,7 @@ let set_messages state node chain msgs =
 
 let set_messages state =
   let open List in
-  let set_node_msgs state n =
-    iter (fun (c, ms) -> set_messages state n c ms)
-  in
+  let set_node_msgs state n = iter (fun (c, ms) -> set_messages state n c ms) in
   iter (fun (n, cms) -> set_node_msgs state n cms)
 
 let set_node_height state node chain branch height =
@@ -112,31 +110,27 @@ let set_sys_height state chain branch height =
 let set_sys_height state =
   let open List in
   iter (fun (c, bhs) ->
-      iter
-        (fun (b, h) -> set_sys_height state Chain.(id c) Branch.(id b) h)
-        bhs)
+      iter (fun (b, h) -> set_sys_height state Chain.(id c) Branch.(id b) h) bhs)
 
 (* TODO sent *)
 
 (* TODO sysmsgs *)
 
 let initial_state ~nodes ~chains ~active ~node_branches ~sys_branches
-    ~node_blocks ~sys_blocks ~expect ~headers ~messages ~node_height
-    ~sys_height ~sent ~sysmsgs =
+    ~node_blocks ~sys_blocks ~expect ~headers ~messages ~node_height ~sys_height
+    ~sent ~sysmsgs =
   let state = init nodes in
-  state.network.chain <- Chain.id chains ;
-  set_node_branches state node_branches ;
-  set_active state active ;
-  set_sys_branch state sys_branches ;
-  set_node_blocks state node_blocks ;
-  set_sys_blocks state sys_blocks ;
-  set_expect state expect ;
-  set_headers state headers ;
-  set_messages state messages ;
-  set_node_height state node_height ;
-  set_sys_height state sys_height ;
-  (* TODO finish updating fields *)
-  if not (Valid.valid state) then (
-    Printf.printf "This state is invalid:\n%s\n" @@ view state ;
-    raise Valid.Invalid_state )
-  else state
+  state.network.chain <- Chain.id chains;
+  set_node_branches state node_branches;
+  set_active state active;
+  set_sys_branch state sys_branches;
+  set_node_blocks state node_blocks;
+  set_sys_blocks state sys_blocks;
+  set_expect state expect;
+  set_headers state headers;
+  set_messages state messages;
+  set_node_height state node_height;
+  set_sys_height state sys_height
+(* TODO finish updating fields *)
+(* if not (Valid.valid state) then ( Printf.printf "This state is
+   invalid:\n%s\n" @@ view state; raise Valid.Invalid_state) else state *)

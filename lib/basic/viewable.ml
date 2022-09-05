@@ -1,7 +1,5 @@
 module type Type = sig
-  type t
-
-  val compare : t -> t -> int
+  type t [@@deriving compare]
 
   val view : t -> string
 end

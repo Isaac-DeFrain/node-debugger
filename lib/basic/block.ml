@@ -1,10 +1,13 @@
-type t = {header : Header.t; ops : Ops.t}
+type t =
+  { header : Header.t
+  ; ops : Ops.t
+  }
 
-let block header ops = {header; ops}
+let block header ops = { header; ops }
 
 let block' c b height num_ops =
   let open Header in
-  let hdr = {chain = Chain.id c; branch = Branch.id b; height} in
+  let hdr = { chain = Chain.id c; branch = Branch.id b; height } in
   let ops = Ops.ops height num_ops in
   block hdr ops
 

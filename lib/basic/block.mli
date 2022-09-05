@@ -1,4 +1,7 @@
-type t = {header : Header.t; ops : Ops.t}
+type t =
+  { header : Header.t
+  ; ops : Ops.t
+  }
 
 val block : Header.t -> Ops.t -> t
 

@@ -9,8 +9,7 @@ let view_nodes info =
   let str =
     fold_left
       (fun a b -> if a = "" then a ^ b else a ^ ", " ^ b)
-      ""
-      (map Id.view info.nodes)
+      "" (map Id.view info.nodes)
   in
   sprintf "[%s]" str
 
@@ -64,12 +63,12 @@ let view_node_blocks ?(sp = 2) info node =
   let chain_id c = make sp ' ' ^ Chain.view c ^ " :> " in
   let branch_id b = make (sp + 2) ' ' ^ Branch.view b ^ " :> " in
   concat_endline
-    ( List.map (fun c ->
-          chain_id c
-          ^ concat_endline
-              ( List.map (fun b -> branch_id b ^ view_blocks info node c b)
-              @@ branches_with_blocks info node c ))
-    @@ chains_with_blocks info node )
+    (List.map (fun c ->
+         chain_id c
+         ^ concat_endline
+             (List.map (fun b -> branch_id b ^ view_blocks info node c b)
+             @@ branches_with_blocks info node c))
+    @@ chains_with_blocks info node)
 
 let view_node_branches ?(sp = 2) info node =
   node_viewer ~sp info node view_branches @@ chains_with_branches info node
@@ -89,14 +88,15 @@ let view_node_messages ?(sp = 2) info node =
 (** view of [node]'s state *)
 let view_node info node =
   String.concat_endline
-    [ "node: " ^ Id.view node;
-      "active: " ^ view_active info node;
-      "blocks:\n" ^ view_node_blocks info node;
-      "branches:\n" ^ view_node_branches info node;
-      "expect:\n" ^ view_node_expect info node;
-      "headers:\n" ^ view_node_headers info node;
-      "height:\n" ^ view_node_heights info node;
-      "messages:\n" ^ view_node_messages info node ]
+    [ "node: " ^ Id.view node
+    ; "active: " ^ view_active info node
+    ; "blocks:\n" ^ view_node_blocks info node
+    ; "branches:\n" ^ view_node_branches info node
+    ; "expect:\n" ^ view_node_expect info node
+    ; "headers:\n" ^ view_node_headers info node
+    ; "height:\n" ^ view_node_heights info node
+    ; "messages:\n" ^ view_node_messages info node
+    ]
 
 let print_node info = print (view_node info)
 
@@ -130,15 +130,16 @@ let view_state_messages info =
 (** view of complete state of all nodes *)
 let view info =
   String.concat_endline
-    [ "nodes:  " ^ view_nodes info;
-      "chains: " ^ view_chains info;
-      "active:\n" ^ view_all_active info;
-      "blocks:\n" ^ view_state_blocks info;
-      "branches:\n" ^ view_state_branches info;
-      "expect:\n" ^ view_state_expect info;
-      "headers:\n" ^ view_state_headers info;
-      "height:\n" ^ view_state_heights info;
-      "messages:\n" ^ view_state_messages info ]
+    [ "nodes:  " ^ view_nodes info
+    ; "chains: " ^ view_chains info
+    ; "active:\n" ^ view_all_active info
+    ; "blocks:\n" ^ view_state_blocks info
+    ; "branches:\n" ^ view_state_branches info
+    ; "expect:\n" ^ view_state_expect info
+    ; "headers:\n" ^ view_state_headers info
+    ; "height:\n" ^ view_state_heights info
+    ; "messages:\n" ^ view_state_messages info
+    ]
 
 let view_chain info = Network_info.view_chain info.network
 

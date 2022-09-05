@@ -27,17 +27,17 @@ module NCBMap = Map.Make (struct
 end)
 
 (** complete state of all nodes *)
-type t = {
-  nodes : Id.t array;
-  mutable active : Chain.t list IdMap.t;
-  mutable blocks : Blocks.t NCBMap.t;
-  mutable branches : Branch.t list NCMap.t;
-  mutable expect : Messages.t NCMap.t;
-  mutable headers : Headers.t NCMap.t;
-  mutable height : int NCBMap.t;
-  mutable messages : Message.t Queue.t NCMap.t;
-  network : Network_info.t;
-}
+type t =
+  { nodes : Id.t array
+  ; mutable active : Chain.t list IdMap.t
+  ; mutable blocks : Blocks.t NCBMap.t
+  ; mutable branches : Branch.t list NCMap.t
+  ; mutable expect : Messages.t NCMap.t
+  ; mutable headers : Headers.t NCMap.t
+  ; mutable height : int NCBMap.t
+  ; mutable messages : Message.t Queue.t NCMap.t
+  ; network : Network_info.t
+  }
 
 (* system will act as node 0 *)
 
@@ -46,16 +46,15 @@ let init num_nodes =
   (* [| 1;...; num_nodes |] *)
   let sys_nodes = Array.init (num_nodes + 1) Id.id in
   (* [| 0;...; num_nodes |] *)
-  {
-    nodes;
-    active = IdMap.empty;
-    blocks = NCBMap.empty;
-    branches = NCMap.empty;
-    expect = NCMap.empty;
-    headers = NCMap.empty;
-    height = NCBMap.empty;
-    messages = NCMap.empty;
-    network = Network_info.init sys_nodes;
+  { nodes
+  ; active = IdMap.empty
+  ; blocks = NCBMap.empty
+  ; branches = NCMap.empty
+  ; expect = NCMap.empty
+  ; headers = NCMap.empty
+  ; height = NCBMap.empty
+  ; messages = NCMap.empty
+  ; network = Network_info.init sys_nodes
   }
 
 let sys = Id.id 0
@@ -118,9 +117,9 @@ let block_at_height_on info node chain branch height =
   try
     let open List in
     Some
-      ( hd
+      (hd
       @@ filter (fun (b : Block.t) -> b.header.height = height)
-      @@ blocks_list info node chain branch )
+      @@ blocks_list info node chain branch)
   with Failure _ -> None
 
 let has_block_at_height info node chain branch height =
@@ -140,7 +139,9 @@ let chains_with_branches info node =
   List.filter (has_branch_on_chain info node) @@ chains info
 
 let current_branch info node chain =
-  match branches info node chain with [] -> Branch.id (-1) | hd :: _ -> hd
+  match branches info node chain with
+  | [] -> Branch.id (-1)
+  | hd :: _ -> hd
 
 let expect info node chain =
   try NCMap.find (node, chain) info.expect with Not_found -> Messages.empty
@@ -181,8 +182,7 @@ let has_height_on_branch info node chain branch =
   height info node chain branch <> -1
 
 let has_height_on_chain info node chain =
-  List.exists (has_height_on_branch info node chain)
-  @@ branches info node chain
+  List.exists (has_height_on_branch info node chain) @@ branches info node chain
 
 let has_height info node =
   List.exists (has_headers_on_chain info node) @@ chains info
@@ -193,8 +193,7 @@ let chains_with_height info node =
   List.filter (has_height_on_chain info node) @@ chains info
 
 let messages info node chain =
-  try NCMap.find (node, chain) info.messages
-  with Not_found -> Queue.create ()
+  try NCMap.find (node, chain) info.messages with Not_found -> Queue.create ()
 
 let messages_list info node chain = messages info node chain |> Queue.to_list
 

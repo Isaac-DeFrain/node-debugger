@@ -13,13 +13,12 @@ let to_list q =
 
 (** elements are pushed from hd to tl *)
 let of_list = function
-  | [] ->
-      create ()
+  | [] -> create ()
   | l ->
-      let rec aux acc = function
-        | [] ->
-            acc
-        | hd :: tl ->
-            push hd acc ; aux acc tl
-      in
-      aux (create ()) l
+    let rec aux acc = function
+      | [] -> acc
+      | hd :: tl ->
+        push hd acc;
+        aux acc tl
+    in
+    aux (create ()) l
